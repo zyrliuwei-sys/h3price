@@ -15,3 +15,7 @@ The source is a single dark marketing page. The desktop reference is 13,390px ta
 9. Four-column footer. Interaction model: link hover.
 
 System layers: page content (0), decorative backgrounds (1), sticky navigation (50), modal/mobile menu (60). Every section uses the same charcoal background and cyan accent.
+
+## 2026-09-05 implementation note
+
+The current first draft follows the source at `/Users/wl./Desktop/saas/manuarora700-proactiv-aceternity-7f4adaa2cd53b845e3bcb320f77c16acd640b354/app/(marketing)/page.tsx`: hero, feature cards, tools, testimonials, pricing, FAQ and CTA. Its static hero preview is intentionally replaced with the project's working generation composer. CTA buttons scroll to that composer; pricing interval toggle, testimonial carousel and FAQ accordions are interactive.

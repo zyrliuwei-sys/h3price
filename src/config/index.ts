@@ -16,10 +16,10 @@ const publicEnv = (key: string) => metaEnv[key] ?? procEnv[key];
 export const envConfigs: Record<string, string> = {
   // App (public)
   app_url: publicEnv('VITE_APP_URL') ?? 'http://localhost:3000',
-  app_name: publicEnv('VITE_APP_NAME') ?? 'uncensored ai',
+  app_name: publicEnv('VITE_APP_NAME') ?? 'h3price ai',
   app_description:
     publicEnv('VITE_APP_DESCRIPTION') ??
-    'Uncensored AI is an AI image generation platform with unlimited image generation, image understanding and reasoning, and the latest AI video generation.',
+    'h3price ai is an AI video generation platform for cinematic concepts, polished motion, and fast creative iteration.',
   app_logo: publicEnv('VITE_APP_LOGO') ?? '',
 
   // Database

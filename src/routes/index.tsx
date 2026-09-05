@@ -6,10 +6,10 @@ import {
   siteSeo,
 } from '@/lib/motion-control-seo';
 import { m } from '@/paraglide/messages.js';
-import { ProactivLanding } from '@/blocks/proactiv-landing';
+import { ProactivReferenceLanding } from '@/blocks/proactiv-reference-landing';
 
 function HomePage() {
-  const faqs = m['proactiv.faq.records']()
+  const faqs = m['reference.faq.records']()
     .split('\n')
     .filter(Boolean)
     .map((record) => {
@@ -20,7 +20,7 @@ function HomePage() {
     {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
-      name: 'uncensored ai',
+      name: 'h3price ai',
       url: SITE_URL,
       applicationCategory: 'MultimediaApplication',
       operatingSystem: 'Web',
@@ -46,7 +46,7 @@ function HomePage() {
 
   return (
     <>
-      <ProactivLanding />
+      <ProactivReferenceLanding />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}

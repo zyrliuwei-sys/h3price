@@ -5,9 +5,9 @@ export const TEXT_TO_IMAGE_SOCIAL_IMAGE_URL = `${SITE_URL}/imgs/image/meigen-201
 
 export const siteSeo = {
   home: {
-    title: 'Uncensored AI - Free Uncensored AI Image Tools',
+    title: 'h3price ai - AI Video Generation Platform',
     description:
-      'Explore free uncensored AI image tools for image generation, editing, and creative direction. Start creating in your browser with no sign-up required.',
+      'Create cinematic AI video from your ideas with h3price ai. Explore modern video generation workflows built for fast creative direction.',
     path: '/',
   },
   textToImage: {

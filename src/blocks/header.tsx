@@ -7,5 +7,5 @@ export function Header() {
     { href: '/#pricing', label: m['landing.nav.pricing']() },
   ];
 
-  return <SiteHeader navLinks={navLinks} />;
+  return <SiteHeader navLinks={navLinks} tone="cinema" />;
 }

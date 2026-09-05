@@ -58,6 +58,7 @@ export interface ProactivGenerationValues {
 }
 
 export interface ProactivHeroComposerProps {
+  appearance?: 'light' | 'console';
   allowImageMode?: boolean;
   allowTextToImageMode?: boolean;
   allowVideoMode?: boolean;
@@ -135,6 +136,7 @@ function formatDuration(seconds: number) {
 
 /** A compact landing composer that can expose only the models currently available. */
 export function ProactivHeroComposer({
+  appearance = 'light',
   allowImageMode = true,
   allowTextToImageMode = true,
   allowVideoMode = true,
@@ -151,6 +153,7 @@ export function ProactivHeroComposer({
   requireReferences = true,
   showReferenceControls = true,
 }: ProactivHeroComposerProps) {
+  const isConsoleAppearance = appearance === 'console';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<'edit' | 'text' | 'video'>(
     allowTextToImageMode ? 'text' : allowVideoMode ? 'video' : 'edit'
@@ -489,36 +492,50 @@ export function ProactivHeroComposer({
   return (
     <section
       aria-label={labels.model}
-      className={`mx-auto w-full text-[#15202b] ${
-        compactAction ? 'max-w-[860px]' : 'max-w-[1088px]'
+      className={`mx-auto w-full ${
+        isConsoleAppearance ? 'text-neutral-100' : 'text-[#15202b]'
+      } ${
+        isConsoleAppearance
+          ? 'max-w-none'
+          : compactAction
+            ? 'max-w-[860px]'
+            : 'max-w-[1088px]'
       }`}
     >
       <div className="flex w-full items-end gap-2">
         <div
-          className={`min-w-0 flex-1 border border-[#ead7df] bg-[#fff8fa] shadow-[0_12px_30px_rgba(66,20,37,0.09)] ${
-            compactAction ? 'rounded-[28px] p-1' : 'rounded-[28px] p-1'
+          className={`min-w-0 flex-1 ${
+            isConsoleAppearance
+              ? 'bg-transparent'
+              : 'rounded-[28px] border border-[#ead7df] bg-[#fff8fa] p-1 shadow-[0_12px_30px_rgba(66,20,37,0.09)]'
           }`}
         >
           <div
-            className={`bg-[#fff1f5] ${
+            className={`${
+              isConsoleAppearance ? 'bg-transparent' : 'bg-[#fff1f5]'
+            } ${
               compactAction
-                ? 'min-h-[128px] rounded-[20px] p-3 sm:p-4'
+                ? `min-h-[172px] ${
+                    isConsoleAppearance
+                      ? 'p-0 sm:p-1'
+                      : 'rounded-[20px] p-2 sm:p-2.5'
+                  }`
                 : 'min-h-[104px] rounded-[22px] p-3'
             }`}
           >
             <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row">
               <div
                 className={`flex min-w-0 flex-1 flex-col ${
-                  compactAction ? 'min-h-24' : 'min-h-20'
+                  compactAction ? 'min-h-32' : 'min-h-20'
                 }`}
               >
                 <label className="sr-only" htmlFor="hero-marketing-prompt">
                   {labels.placeholder}
                 </label>
                 <div
-                  className={`relative flex w-full flex-1 flex-col px-1 ${
-                    compactAction ? 'min-h-12' : 'min-h-12'
-                  }`}
+                  className={`relative flex w-full flex-1 flex-col ${
+                    compactAction ? 'px-0' : 'px-1'
+                  } ${compactAction ? 'min-h-12' : 'min-h-12'}`}
                 >
                   {showReferenceControls ? (
                     <>
@@ -537,14 +554,24 @@ export function ProactivHeroComposer({
                         type="button"
                         disabled={hasReachedImageReferenceLimit}
                         onClick={() => openFilePicker()}
-                        className={`absolute left-2 z-10 inline-flex shrink-0 items-center justify-center rounded-xl border shadow-[0_5px_14px_rgba(66,20,37,0.1)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] disabled:cursor-not-allowed disabled:opacity-45 ${
+                        className={`absolute z-10 inline-flex shrink-0 items-center justify-center rounded-xl border transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+                          compactAction ? 'left-0' : 'left-2'
+                        } ${
+                          isConsoleAppearance
+                            ? 'shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200'
+                            : 'shadow-[0_5px_14px_rgba(66,20,37,0.1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]'
+                        } ${
                           // Match the thumbnail row's py-1 so both edges (and
                           // badges) sit flush once references are attached.
                           references.length ? 'top-1' : 'top-0'
                         } ${
-                          references.length
-                            ? 'border-[#efb0c4] bg-[#fde3ec] text-[#c92f68] hover:bg-[#f9ccd9]'
-                            : 'border-[#efbed0] bg-white text-[#c92f68] hover:bg-[#fff5f8] hover:text-[#a62150]'
+                          isConsoleAppearance
+                            ? references.length
+                              ? 'border-cyan-100/25 bg-cyan-200/10 text-cyan-100 hover:bg-cyan-200/15'
+                              : 'border-white/15 bg-white/[0.06] text-neutral-200 hover:border-white/25 hover:bg-white/10 hover:text-white'
+                            : references.length
+                              ? 'border-[#efb0c4] bg-[#fde3ec] text-[#c92f68] hover:bg-[#f9ccd9]'
+                              : 'border-[#efbed0] bg-white text-[#c92f68] hover:bg-[#fff5f8] hover:text-[#a62150]'
                         } ${compactAction ? 'size-10' : 'size-12'}`}
                         aria-label={labels.addReference}
                         title={
@@ -558,7 +585,13 @@ export function ProactivHeroComposer({
                           aria-hidden="true"
                         />
                         {references.length ? (
-                          <span className="absolute -top-1.5 -right-1.5 grid size-4 place-items-center rounded-full bg-[#c92f68] text-[9px] font-bold text-white shadow-sm">
+                          <span
+                            className={`absolute -top-1.5 -right-1.5 grid size-4 place-items-center rounded-full text-[9px] font-bold shadow-sm ${
+                              isConsoleAppearance
+                                ? 'bg-cyan-100 text-[#0e1011]'
+                                : 'bg-[#c92f68] text-white'
+                            }`}
+                          >
                             {references.length}
                           </span>
                         ) : null}
@@ -575,6 +608,7 @@ export function ProactivHeroComposer({
                         <AttachmentPreview
                           key={reference.id}
                           attachment={reference}
+                          appearance={appearance}
                           compact={compactAction}
                           removeLabel={labels.removeAttachment}
                           onRemove={() => removeReference(reference.id)}
@@ -591,7 +625,13 @@ export function ProactivHeroComposer({
                       setHasRequestedGeneration(false);
                     }}
                     placeholder={labels.placeholder}
-                    className={`block w-full flex-1 resize-none bg-transparent py-1 pr-1 pl-[4.5rem] text-[#15202b] outline-none placeholder:text-[#7b8995] ${
+                    className={`block w-full flex-1 resize-none bg-transparent py-1 pr-1 outline-none ${
+                      compactAction ? 'pl-16' : 'pl-[4.5rem]'
+                    } ${
+                      isConsoleAppearance
+                        ? 'text-neutral-100 placeholder:text-neutral-500'
+                        : 'text-[#15202b] placeholder:text-[#7b8995]'
+                    } ${
                       compactAction
                         ? 'min-h-10 text-sm leading-5 sm:text-base'
                         : 'min-h-28 text-sm leading-5'
@@ -599,9 +639,14 @@ export function ProactivHeroComposer({
                   />
                 </div>
 
-                <div className="mt-2.5 flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div
+                  className={`flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+                    compactAction ? 'mt-auto translate-y-5' : 'mt-2.5'
+                  }`}
+                >
                   {hasMultipleModels ? (
                     <ModelPicker
+                      appearance={appearance}
                       label={labels.model}
                       options={modelOptions}
                       value={mode}
@@ -609,6 +654,7 @@ export function ProactivHeroComposer({
                     />
                   ) : (
                     <ModelBadge
+                      appearance={appearance}
                       label={labels.model}
                       value={modelOptions[0]?.label ?? labels.model}
                     />
@@ -616,6 +662,7 @@ export function ProactivHeroComposer({
 
                   {mode !== 'video' ? (
                     <ImageSettingsPicker
+                      appearance={appearance}
                       aspectRatio={aspectRatio}
                       aspectRatioLabel={labels.aspectRatio}
                       onAspectRatioChange={(nextRatio) => {
@@ -641,8 +688,12 @@ export function ProactivHeroComposer({
                         isMotionVideoDurationUnsupported
                           ? 'bg-red-50 text-red-700 ring-1 ring-red-200'
                           : motionVideoDurationState === 'ready'
-                            ? 'bg-[#fde3ec] text-[#c92f68]'
-                            : 'bg-[#fff5f8] text-[#627181]'
+                            ? isConsoleAppearance
+                              ? 'bg-cyan-200/10 text-cyan-100'
+                              : 'bg-[#fde3ec] text-[#c92f68]'
+                            : isConsoleAppearance
+                              ? 'bg-white/[0.06] text-neutral-400'
+                              : 'bg-[#fff5f8] text-[#627181]'
                       }`}
                       title={durationHelp}
                     >
@@ -656,9 +707,11 @@ export function ProactivHeroComposer({
               <div
                 className={`flex shrink-0 items-stretch gap-1.5 self-end ${
                   useCompactGenerateAction
-                    ? 'mr-1 ml-auto size-14 self-center sm:mr-2'
+                    ? isConsoleAppearance
+                      ? 'mr-0 ml-auto size-14 self-end'
+                      : 'mr-0 ml-auto size-14 self-end'
                     : 'h-14 sm:w-[232px]'
-                }`}
+                } ${compactAction ? 'translate-y-5' : ''}`}
               >
                 <button
                   type="button"
@@ -670,13 +723,23 @@ export function ProactivHeroComposer({
                   title={
                     hasRequestedGeneration ? labels.generated : labels.generate
                   }
-                  className={`group relative overflow-hidden px-4 text-xs font-bold tracking-wide text-white uppercase transition-[filter,transform] hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
+                  className={`group relative overflow-hidden px-4 text-xs font-bold tracking-wide uppercase transition-[filter,transform] hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
+                    isConsoleAppearance
+                      ? 'text-[#0e1011] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200'
+                      : 'text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]'
+                  } ${
                     useCompactGenerateAction
-                      ? 'size-full flex-none rounded-[18px] border border-white/65 bg-[#c92f68] p-0 shadow-[inset_0_-4px_0_#9f1f50,0_8px_18px_rgba(201,47,104,0.32)]'
-                      : 'min-w-[112px] flex-1 rounded-xl bg-[#c92f68] shadow-[inset_0_-3px_0_#9f1f50,0_8px_18px_rgba(201,47,104,0.2)]'
+                      ? isConsoleAppearance
+                        ? 'size-full flex-none rounded-[14px] border border-white/70 bg-white p-0 shadow-[inset_0_-3px_0_rgba(148,163,184,0.48)] disabled:border-white/10 disabled:bg-white/10 disabled:text-white/40'
+                        : 'size-full flex-none rounded-[18px] border border-white/65 bg-[#c92f68] p-0 shadow-[inset_0_-4px_0_#9f1f50,0_8px_18px_rgba(201,47,104,0.32)]'
+                      : isConsoleAppearance
+                        ? 'min-w-[112px] flex-1 rounded-xl bg-white shadow-[inset_0_-3px_0_rgba(148,163,184,0.48)] disabled:bg-white/10 disabled:text-white/40'
+                        : 'min-w-[112px] flex-1 rounded-xl bg-[#c92f68] shadow-[inset_0_-3px_0_#9f1f50,0_8px_18px_rgba(201,47,104,0.2)]'
                   }`}
                 >
-                  <span className="absolute -right-5 -bottom-8 size-24 rounded-full bg-white/20 blur-2xl transition-transform duration-300 group-hover:scale-125" />
+                  {!isConsoleAppearance ? (
+                    <span className="absolute -right-5 -bottom-8 size-24 rounded-full bg-white/20 blur-2xl transition-transform duration-300 group-hover:scale-125" />
+                  ) : null}
                   <span
                     className={`relative flex items-center justify-center ${
                       useCompactGenerateAction
@@ -718,16 +781,19 @@ export function ProactivHeroComposer({
 }
 
 function ModelPicker({
+  appearance = 'light',
   label,
   onChange,
   options,
   value,
 }: {
+  appearance?: 'light' | 'console';
   label: string;
   onChange: (value: 'edit' | 'text' | 'video') => void;
   options: { label: string; value: 'edit' | 'text' | 'video' }[];
   value: 'edit' | 'text' | 'video';
 }) {
+  const isConsoleAppearance = appearance === 'console';
   const selected =
     options.find((option) => option.value === value) ?? options[0];
 
@@ -735,13 +801,21 @@ function ModelPicker({
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={label}
-        className="group/model inline-flex h-8 shrink-0 items-center gap-1.5 rounded-xl border border-[#d7dde2] bg-white px-2 text-xs font-semibold text-[#354454] shadow-[0_2px_8px_rgba(21,32,43,0.06)] transition-[background-color,border-color,box-shadow,color] hover:border-[#b9c5cf] hover:bg-[#f3f5f6] hover:text-[#15202b] hover:shadow-[0_5px_13px_rgba(21,32,43,0.1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#627181]"
+        className={`group/model inline-flex h-8 shrink-0 items-center gap-1.5 rounded-xl border px-2 text-xs font-semibold transition-[background-color,border-color,box-shadow,color] focus-visible:outline-2 focus-visible:outline-offset-2 ${
+          isConsoleAppearance
+            ? 'border-white/15 bg-white/[0.06] text-neutral-200 hover:border-white/25 hover:bg-white/10 hover:text-white focus-visible:outline-cyan-200'
+            : 'border-[#d7dde2] bg-white text-[#354454] shadow-[0_2px_8px_rgba(21,32,43,0.06)] hover:border-[#b9c5cf] hover:bg-[#f3f5f6] hover:text-[#15202b] hover:shadow-[0_5px_13px_rgba(21,32,43,0.1)] focus-visible:outline-[#627181]'
+        }`}
       >
         <span className="max-w-[12.5rem] truncate leading-none">
           {selected?.label}
         </span>
         <ChevronDown
-          className="size-3.5 shrink-0 text-[#8a9aa6] transition-transform duration-150 group-hover/model:text-[#4b5b68] group-data-popup-open/model:rotate-180"
+          className={`size-3.5 shrink-0 transition-transform duration-150 group-data-popup-open/model:rotate-180 ${
+            isConsoleAppearance
+              ? 'text-neutral-500 group-hover/model:text-neutral-200'
+              : 'text-[#8a9aa6] group-hover/model:text-[#4b5b68]'
+          }`}
           aria-hidden="true"
         />
       </DropdownMenuTrigger>
@@ -750,9 +824,17 @@ function ModelPicker({
         side="top"
         align="start"
         sideOffset={10}
-        className="w-[min(19rem,calc(100vw-2rem))] min-w-[min(19rem,calc(100vw-2rem))] rounded-xl border border-[#d7dde2] bg-[#fbfcfd] p-1.5 text-[#15202b] shadow-[0_18px_48px_rgba(21,32,43,0.16)]"
+        className={`w-[min(19rem,calc(100vw-2rem))] min-w-[min(19rem,calc(100vw-2rem))] rounded-xl border p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.32)] ${
+          isConsoleAppearance
+            ? 'border-white/15 bg-[#17191b] text-neutral-100'
+            : 'border-[#d7dde2] bg-[#fbfcfd] text-[#15202b] shadow-[0_18px_48px_rgba(21,32,43,0.16)]'
+        }`}
       >
-        <p className="px-2.5 pt-1.5 pb-2 text-[10px] font-semibold tracking-[0.16em] text-[#627181] uppercase">
+        <p
+          className={`px-2.5 pt-1.5 pb-2 text-[10px] font-semibold tracking-[0.16em] uppercase ${
+            isConsoleAppearance ? 'text-neutral-500' : 'text-[#627181]'
+          }`}
+        >
           {label}
         </p>
         <DropdownMenuRadioGroup
@@ -768,7 +850,11 @@ function ModelPicker({
               value={option.value}
               label={option.label}
               closeOnClick
-              className="group/model-option flex min-h-11 items-center rounded-lg border border-transparent px-2.5 py-2 text-xs font-semibold text-[#627181] transition-[background-color,border-color,color] duration-150 hover:border-[#d7dde2] hover:bg-[#f3f5f6] hover:text-[#15202b] focus:border-[#b9c5cf] focus:bg-[#eef1f3] focus:text-[#15202b] data-checked:border-[#8ba0ac] data-checked:bg-[#eef1f3] data-checked:text-[#15202b] [&_[data-slot=dropdown-menu-radio-item-indicator]]:right-2 [&_[data-slot=dropdown-menu-radio-item-indicator]]:text-[#15202b]"
+              className={`group/model-option flex min-h-11 items-center rounded-lg border border-transparent px-2.5 py-2 text-xs font-semibold transition-[background-color,border-color,color] duration-150 [&_[data-slot=dropdown-menu-radio-item-indicator]]:right-2 ${
+                isConsoleAppearance
+                  ? 'text-neutral-400 hover:border-white/10 hover:bg-white/[0.06] hover:text-white focus:border-white/20 focus:bg-white/[0.08] focus:text-white data-checked:border-white/20 data-checked:bg-white/[0.08] data-checked:text-white [&_[data-slot=dropdown-menu-radio-item-indicator]]:text-cyan-100'
+                  : 'text-[#627181] hover:border-[#d7dde2] hover:bg-[#f3f5f6] hover:text-[#15202b] focus:border-[#b9c5cf] focus:bg-[#eef1f3] focus:text-[#15202b] data-checked:border-[#8ba0ac] data-checked:bg-[#eef1f3] data-checked:text-[#15202b] [&_[data-slot=dropdown-menu-radio-item-indicator]]:text-[#15202b]'
+              }`}
             >
               <span className="min-w-0 truncate">{option.label}</span>
             </DropdownMenuRadioItem>
@@ -779,11 +865,25 @@ function ModelPicker({
   );
 }
 
-function ModelBadge({ label, value }: { label: string; value: string }) {
+function ModelBadge({
+  appearance = 'light',
+  label,
+  value,
+}: {
+  appearance?: 'light' | 'console';
+  label: string;
+  value: string;
+}) {
+  const isConsoleAppearance = appearance === 'console';
+
   return (
     <span
       aria-label={label}
-      className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-xl border border-[#d7dde2] bg-white px-2 text-xs font-semibold text-[#354454] shadow-[0_2px_8px_rgba(21,32,43,0.06)]"
+      className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-xl border px-2 text-xs font-semibold ${
+        isConsoleAppearance
+          ? 'border-white/15 bg-white/[0.06] text-neutral-200'
+          : 'border-[#d7dde2] bg-white text-[#354454] shadow-[0_2px_8px_rgba(21,32,43,0.06)]'
+      }`}
     >
       <span className="max-w-[12.5rem] truncate leading-none">{value}</span>
     </span>
@@ -791,6 +891,7 @@ function ModelBadge({ label, value }: { label: string; value: string }) {
 }
 
 function ImageSettingsPicker({
+  appearance = 'light',
   aspectRatio,
   aspectRatioLabel,
   onAspectRatioChange,
@@ -798,6 +899,7 @@ function ImageSettingsPicker({
   resolution,
   resolutionLabel,
 }: {
+  appearance?: 'light' | 'console';
   aspectRatio: string;
   aspectRatioLabel: string;
   onAspectRatioChange: (value: string) => void;
@@ -805,6 +907,7 @@ function ImageSettingsPicker({
   resolution: (typeof resolutionOptions)[number];
   resolutionLabel: string;
 }) {
+  const isConsoleAppearance = appearance === 'console';
   const selectedOption =
     aspectRatioOptions.find((option) => option.value === aspectRatio) ??
     aspectRatioOptions[5];
@@ -813,25 +916,47 @@ function ImageSettingsPicker({
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={`${aspectRatioLabel}: ${aspectRatio}. ${resolutionLabel}: ${resolution}`}
-        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-[#d7dde2] bg-white px-2 text-xs font-medium text-[#4b5b68] shadow-sm transition-colors hover:bg-[#f3f5f6] hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#627181]"
+        className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 ${
+          isConsoleAppearance
+            ? 'border-white/15 bg-white/[0.06] text-neutral-300 hover:border-white/25 hover:bg-white/10 hover:text-white focus-visible:outline-cyan-200'
+            : 'border-[#d7dde2] bg-white text-[#4b5b68] shadow-sm hover:bg-[#f3f5f6] hover:text-[#15202b] focus-visible:outline-[#627181]'
+        }`}
       >
         <span
           className={`block rounded-[3px] border border-current ${selectedOption.triggerPreviewClassName}`}
           aria-hidden="true"
         />
         <span>{aspectRatio}</span>
-        <span className="h-3.5 w-px bg-[#d7dde2]" aria-hidden="true" />
+        <span
+          className={`h-3.5 w-px ${
+            isConsoleAppearance ? 'bg-white/20' : 'bg-[#d7dde2]'
+          }`}
+          aria-hidden="true"
+        />
         <span>{resolution}</span>
-        <ChevronDown className="size-3.5 text-[#627181]" aria-hidden="true" />
+        <ChevronDown
+          className={`size-3.5 ${
+            isConsoleAppearance ? 'text-neutral-500' : 'text-[#627181]'
+          }`}
+          aria-hidden="true"
+        />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
         side="top"
         align="start"
         sideOffset={10}
-        className="w-[min(460px,calc(100vw-2rem))] min-w-[min(320px,calc(100vw-2rem))] rounded-[22px] border border-[#d7dde2] bg-white p-3 text-[#15202b] shadow-[0_18px_48px_rgba(21,32,43,0.18)]"
+        className={`w-[min(460px,calc(100vw-2rem))] min-w-[min(320px,calc(100vw-2rem))] rounded-[22px] border p-3 shadow-[0_18px_48px_rgba(0,0,0,0.32)] ${
+          isConsoleAppearance
+            ? 'border-white/15 bg-[#17191b] text-neutral-100'
+            : 'border-[#d7dde2] bg-white text-[#15202b] shadow-[0_18px_48px_rgba(21,32,43,0.18)]'
+        }`}
       >
-        <p className="px-1 pt-0.5 pb-2.5 text-[10px] font-semibold tracking-[0.16em] text-[#627181] uppercase">
+        <p
+          className={`px-1 pt-0.5 pb-2.5 text-[10px] font-semibold tracking-[0.16em] uppercase ${
+            isConsoleAppearance ? 'text-neutral-500' : 'text-[#627181]'
+          }`}
+        >
           {aspectRatioLabel}
         </p>
         <DropdownMenuRadioGroup
@@ -847,7 +972,11 @@ function ImageSettingsPicker({
                 value={option.value}
                 label={option.value}
                 closeOnClick={false}
-                className="group/ratio flex h-12 flex-col justify-center gap-1 rounded-xl border border-transparent px-2 py-1.5 text-xs font-medium text-[#627181] transition-[background-color,border-color,color] duration-150 hover:bg-[#f3f5f6] hover:text-[#15202b] focus:bg-[#e9eef1] focus:text-[#15202b] data-checked:bg-[#e9eef1] data-checked:text-[#15202b] [&_[data-slot=dropdown-menu-radio-item-indicator]]:hidden"
+                className={`group/ratio flex h-12 flex-col justify-center gap-1 rounded-xl border border-transparent px-2 py-1.5 text-xs font-medium transition-[background-color,border-color,color] duration-150 [&_[data-slot=dropdown-menu-radio-item-indicator]]:hidden ${
+                  isConsoleAppearance
+                    ? 'text-neutral-400 hover:bg-white/[0.06] hover:text-white focus:bg-white/[0.08] focus:text-white data-checked:bg-white/[0.08] data-checked:text-white'
+                    : 'text-[#627181] hover:bg-[#f3f5f6] hover:text-[#15202b] focus:bg-[#e9eef1] focus:text-[#15202b] data-checked:bg-[#e9eef1] data-checked:text-[#15202b]'
+                }`}
               >
                 <span
                   className="grid size-7 shrink-0 place-items-center"
@@ -856,8 +985,12 @@ function ImageSettingsPicker({
                   <span
                     className={`block rounded-[2px] border-[1.5px] transition-colors ${option.previewClassName} ${
                       selected
-                        ? 'border-[#15202b] text-[#15202b]'
-                        : 'border-[#8ba0ac] text-[#8ba0ac] group-hover/ratio:border-[#4b5b68] group-hover/ratio:text-[#4b5b68]'
+                        ? isConsoleAppearance
+                          ? 'border-cyan-100 text-cyan-100'
+                          : 'border-[#15202b] text-[#15202b]'
+                        : isConsoleAppearance
+                          ? 'border-neutral-600 text-neutral-600 group-hover/ratio:border-neutral-300 group-hover/ratio:text-neutral-300'
+                          : 'border-[#8ba0ac] text-[#8ba0ac] group-hover/ratio:border-[#4b5b68] group-hover/ratio:text-[#4b5b68]'
                     }`}
                   />
                 </span>
@@ -867,8 +1000,16 @@ function ImageSettingsPicker({
           })}
         </DropdownMenuRadioGroup>
 
-        <div className="mt-3 border-t border-[#e4e8eb] pt-3">
-          <p className="px-1 pb-2 text-[10px] font-semibold tracking-[0.16em] text-[#627181] uppercase">
+        <div
+          className={`mt-3 border-t pt-3 ${
+            isConsoleAppearance ? 'border-white/10' : 'border-[#e4e8eb]'
+          }`}
+        >
+          <p
+            className={`px-1 pb-2 text-[10px] font-semibold tracking-[0.16em] uppercase ${
+              isConsoleAppearance ? 'text-neutral-500' : 'text-[#627181]'
+            }`}
+          >
             {resolutionLabel}
           </p>
           <DropdownMenuRadioGroup
@@ -878,7 +1019,9 @@ function ImageSettingsPicker({
                 nextValue as (typeof resolutionOptions)[number]
               )
             }
-            className="flex rounded-2xl bg-[#eff1f3] p-1"
+            className={`flex rounded-2xl p-1 ${
+              isConsoleAppearance ? 'bg-white/[0.06]' : 'bg-[#eff1f3]'
+            }`}
           >
             {resolutionOptions.map((option) => (
               <DropdownMenuRadioItem
@@ -886,7 +1029,11 @@ function ImageSettingsPicker({
                 value={option}
                 label={option}
                 closeOnClick={false}
-                className="flex h-10 flex-1 justify-center rounded-xl px-2 text-xs font-semibold text-[#627181] transition-[background-color,color,box-shadow] hover:text-[#15202b] focus:bg-white focus:text-[#15202b] data-checked:bg-white data-checked:text-[#15202b] data-checked:shadow-[0_3px_8px_rgba(21,32,43,0.12)] [&_[data-slot=dropdown-menu-radio-item-indicator]]:hidden"
+                className={`flex h-10 flex-1 justify-center rounded-xl px-2 text-xs font-semibold transition-[background-color,color,box-shadow] [&_[data-slot=dropdown-menu-radio-item-indicator]]:hidden ${
+                  isConsoleAppearance
+                    ? 'text-neutral-400 hover:text-white focus:bg-white/[0.12] focus:text-white data-checked:bg-white data-checked:text-[#0e1011] data-checked:shadow-[0_3px_8px_rgba(0,0,0,0.2)]'
+                    : 'text-[#627181] hover:text-[#15202b] focus:bg-white focus:text-[#15202b] data-checked:bg-white data-checked:text-[#15202b] data-checked:shadow-[0_3px_8px_rgba(21,32,43,0.12)]'
+                }`}
               >
                 {option}
               </DropdownMenuRadioItem>
@@ -900,20 +1047,26 @@ function ImageSettingsPicker({
 
 function AttachmentPreview({
   attachment,
+  appearance = 'light',
   compact = false,
   onRemove,
   removeLabel,
 }: {
   attachment: ReferenceAttachment;
+  appearance?: 'light' | 'console';
   compact?: boolean;
   onRemove: () => void;
   removeLabel: string;
 }) {
+  const isConsoleAppearance = appearance === 'console';
+
   return (
     <figure
-      className={`group/attachment relative shrink-0 overflow-visible rounded-lg border border-[#e8cbd5] bg-[#fffafd] shadow-[0_6px_16px_rgba(66,20,37,0.12)] ${
-        compact ? 'size-10' : 'size-12'
-      }`}
+      className={`group/attachment relative shrink-0 overflow-visible rounded-lg border ${
+        isConsoleAppearance
+          ? 'border-white/15 bg-white/[0.06] shadow-[0_6px_16px_rgba(0,0,0,0.24)]'
+          : 'border-[#e8cbd5] bg-[#fffafd] shadow-[0_6px_16px_rgba(66,20,37,0.12)]'
+      } ${compact ? 'size-10' : 'size-12'}`}
     >
       {attachment.type === 'video' ? (
         <video
@@ -933,7 +1086,11 @@ function AttachmentPreview({
         type="button"
         onClick={onRemove}
         aria-label={`${removeLabel}: ${attachment.name}`}
-        className="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full border border-[#e8cbd5] bg-white text-[#627181] shadow-[0_2px_8px_rgba(21,32,43,0.16)] transition-colors hover:bg-[#ef5350] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+        className={`absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full border bg-white shadow-[0_2px_8px_rgba(21,32,43,0.16)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 ${
+          isConsoleAppearance
+            ? 'border-white/15 bg-[#26292c] text-neutral-300 hover:bg-red-500 hover:text-white focus-visible:outline-cyan-200'
+            : 'border-[#e8cbd5] text-[#627181] hover:bg-[#ef5350] hover:text-white focus-visible:outline-[#c92f68]'
+        }`}
       >
         <X className="size-3" strokeWidth={2.5} aria-hidden="true" />
       </button>

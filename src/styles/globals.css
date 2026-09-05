@@ -133,6 +133,31 @@
 }
 
 @layer utilities {
+  .proactiv-reference {
+    --proactiv-reference-cyan: #39c3ef;
+    color-scheme: dark;
+  }
+
+  .proactiv-reference-heading {
+    background: linear-gradient(to bottom, #a3a3a3, #ffffff 58%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .proactiv-reference-marquee {
+    animation: proactiv-reference-marquee 24s linear infinite;
+  }
+
+  @keyframes proactiv-reference-marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-33%);
+    }
+  }
+
   .proactiv-site {
     --proactiv-charcoal: #ffffff;
     --proactiv-panel: #ffffff;
