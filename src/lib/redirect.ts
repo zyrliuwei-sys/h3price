@@ -26,7 +26,7 @@ const AUTH_PATH_RE =
 export function safeInternalPath(
   input: string | null | undefined
 ): string | null {
-  if (!input) return null;
+  if (!input || /[\\\x00-\x1f\x7f]/.test(input)) return null;
 
   let path = input;
   if (!path.startsWith('/') || path.startsWith('//')) {

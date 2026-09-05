@@ -453,3 +453,30 @@
     }
   }
 }
+
+/* Equal duplicated groups produce a seamless vertical loop. */
+@keyframes price-column-scroll {
+  to {
+    transform: translateY(-50%);
+  }
+}
+.price-column-track {
+  animation: price-column-scroll var(--column-duration, 10s) linear infinite;
+}
+.price-columns:hover .price-column-track,
+.price-columns:focus-within .price-column-track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .price-columns {
+    height: auto;
+    mask-image: none;
+  }
+  .price-column-track {
+    animation: none;
+  }
+  .price-column-copy[aria-hidden='true'],
+  .price-column[aria-hidden='true'] {
+    display: none;
+  }
+}

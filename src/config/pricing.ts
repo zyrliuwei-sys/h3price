@@ -10,6 +10,7 @@
 
 import { PaymentInterval, PaymentType } from '@/core/payment/types';
 import { grokPricingPlans } from '@/lib/grok-pricing-plans';
+import { h3MaxRetailPlans } from '@/lib/h3-max-retail-plans';
 
 export type PricingPlanInfo = {
   name: string;
@@ -30,6 +31,48 @@ export type PricingProduct = {
   plan?: PricingPlanInfo;
 };
 
+/** H3 checkout uses the same amounts and IDs as the public pricing plans. */
+const h3PricingCatalog: Record<string, PricingProduct> = Object.fromEntries(
+  Object.entries(h3MaxRetailPlans).flatMap(([tier, periods]) => {
+    const tierName = {
+      essentials: 'Start',
+      studio: 'Creator',
+      production: 'Studio',
+    }[tier];
+    return Object.entries(periods).map(([period, retail]) => {
+      const recurring = period !== 'oneTime';
+      const periodName =
+        period === 'monthly'
+          ? 'Monthly'
+          : period === 'yearly'
+            ? 'Annual'
+            : 'Credit Pack';
+      const name = `H3 Max ${tierName} ${periodName}`;
+      const product: PricingProduct = {
+        ...retail,
+        productName: name,
+        planName: name,
+        description: `${name} video credits`,
+        type: recurring ? PaymentType.SUBSCRIPTION : PaymentType.ONE_TIME,
+        currency: 'usd',
+        ...(recurring
+          ? {
+              plan: {
+                name,
+                interval:
+                  period === 'monthly'
+                    ? PaymentInterval.MONTH
+                    : PaymentInterval.YEAR,
+                intervalCount: 1,
+              },
+            }
+          : {}),
+      };
+      return [product.productId, product];
+    });
+  })
+);
+
 /**
  * Grok Imagine Image 2.0 catalog. Credit amounts use the same unit as the
  * EvoLink API; the image-generation route deducts the published API credit
@@ -37,6 +80,7 @@ export type PricingProduct = {
  * Keys MUST match what the pricing UI sends as product_id.
  */
 export const pricingCatalog: Record<string, PricingProduct> = {
+  ...h3PricingCatalog,
   starter_monthly: {
     productId: 'starter_monthly',
     productName: 'Essentials Monthly',
@@ -161,7 +205,9 @@ export const pricingCatalog: Record<string, PricingProduct> = {
 
 export function getPricingProduct(productId: string): PricingProduct | null {
   if (!productId) return null;
-  return pricingCatalog[productId] ?? null;
+  return Object.hasOwn(pricingCatalog, productId)
+    ? pricingCatalog[productId]
+    : null;
 }
 
 export function listPricingProducts(): PricingProduct[] {

@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 
 import { useSession } from '@/core/auth/client';
 import { apiGet } from '@/lib/api-client';
+import { authRouteHead } from '@/lib/auth-route-head';
 import {
   isAllowedAppProtocolUrl,
   isAppProtocolUrl,
@@ -97,5 +98,6 @@ function AuthCallbackPage() {
 }
 
 export const Route = createFileRoute('/(auth)/auth-callback')({
+  head: () => authRouteHead('auth-callback'),
   component: AuthCallbackPage,
 });

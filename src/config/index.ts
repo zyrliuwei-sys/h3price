@@ -15,6 +15,7 @@ const publicEnv = (key: string) => metaEnv[key] ?? procEnv[key];
 
 export const envConfigs: Record<string, string> = {
   // App (public)
+  site_url: publicEnv('VITE_SITE_URL') ?? 'https://h3price.com',
   app_url: publicEnv('VITE_APP_URL') ?? 'http://localhost:3000',
   app_name: publicEnv('VITE_APP_NAME') ?? 'h3price ai',
   app_description:

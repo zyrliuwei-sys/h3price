@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
   BarChart3,
@@ -13,9 +13,16 @@ import {
   WandSparkles,
 } from 'lucide-react';
 
-import { useRouter } from '@/core/i18n/navigation';
+import { Link, useRouter } from '@/core/i18n/navigation';
+import {
+  FAL_H3_MAX_LANDING_URL,
+  FAL_H3_MAX_MODEL_URL,
+  FAL_H3_MODEL_URL,
+  REGULAR,
+} from '@/lib/pricing';
 import { m } from '@/paraglide/messages.js';
 import { Footer } from '@/blocks/footer';
+import { H3Tools } from '@/blocks/h3/tools';
 import { Header } from '@/blocks/header';
 import { Pricing } from '@/blocks/pricing';
 import {
@@ -26,6 +33,7 @@ import {
   RuixenBentoCards,
   type RuixenBentoCardItem,
 } from '@/components/ruixen-bento-cards';
+import { TestimonialsColumn } from '@/components/ui/testimonials-columns-1';
 
 type ReferenceRecord = readonly [string, ...string[]];
 
@@ -33,7 +41,10 @@ function parseRecords(value: string): ReferenceRecord[] {
   return value
     .split('\n')
     .filter(Boolean)
-    .map((record) => record.split('||') as ReferenceRecord);
+    .map((record): ReferenceRecord => {
+      const [first = '', ...rest] = record.split('||');
+      return [first, ...rest];
+    });
 }
 
 const composerLabels = (): ProactivHeroComposerLabels => ({
@@ -86,11 +97,19 @@ const toolVideos = [
 export function ProactivReferenceLanding() {
   const router = useRouter();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const testimonials = useMemo(
-    () => parseRecords(m['reference.testimonials.records']()),
-    []
+  const testimonials = parseRecords(m['reference.testimonials.records']()).map(
+    ([name, role, text], index) => ({
+      name,
+      role: role ?? '',
+      text: text ?? '',
+      href: [
+        FAL_H3_MAX_MODEL_URL,
+        FAL_H3_MAX_LANDING_URL,
+        FAL_H3_MODEL_URL,
+        FAL_H3_MODEL_URL,
+      ][index],
+    })
   );
-  const [activeTestimonial, setActiveTestimonial] = useState(0);
   const features = parseRecords(m['reference.features.records']());
   const featureCards: RuixenBentoCardItem[] = features.map(
     ([title, description], index) => ({
@@ -102,26 +121,12 @@ export function ProactivReferenceLanding() {
   const tools = parseRecords(m['reference.tools.records']());
   const faqs = parseRecords(m['reference.faq.records']());
 
-  useEffect(() => {
-    if (testimonials.length < 2) return;
-    const id = window.setInterval(() => {
-      setActiveTestimonial((current) =>
-        current + 1 === testimonials.length ? 0 : current + 1
-      );
-    }, 7000);
-    return () => window.clearInterval(id);
-  }, [testimonials.length]);
-
-  const openPromptGenerator = () => router.push('/prompt-generator');
-
-  const activeQuote = testimonials[activeTestimonial] ?? testimonials[0];
-
   return (
     <div className="proactiv-reference relative isolate overflow-hidden bg-[#08090a] text-white">
       <Header />
       <AmbientLight />
       <main>
-        <section className="relative mx-auto flex min-h-[840px] max-w-7xl flex-col items-center px-5 pt-24 pb-20 sm:px-8 md:min-h-[1120px] md:pt-36">
+        <section className="relative mx-auto flex max-w-7xl flex-col items-center px-5 pt-24 pb-12 sm:px-8 md:pt-36 md:pb-20">
           <video
             aria-hidden="true"
             autoPlay
@@ -178,14 +183,13 @@ export function ProactivReferenceLanding() {
                 {m['reference.cta.description']()}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={openPromptGenerator}
+            <Link
+              href="/prompt-generator"
               className="group inline-flex items-center gap-2 rounded-md bg-white px-5 py-3 text-base font-semibold text-black transition-transform hover:-translate-y-0.5"
             >
               {m['reference.hero.cta']()}
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-            </button>
+            </Link>
           </div>
           <div className="relative z-10 mx-auto mt-16 max-w-6xl overflow-hidden rounded-t-[28px] border-x border-t border-white/15 bg-[#141414] p-3 shadow-[0_-10px_70px_rgba(255,255,255,0.08)] sm:p-5">
             <H3MaxVideoReel />
@@ -194,7 +198,7 @@ export function ProactivReferenceLanding() {
 
         <section
           id="features"
-          className="relative mx-auto max-w-5xl scroll-mt-20 px-5 py-20 sm:px-8 md:py-32"
+          className="relative mx-auto max-w-5xl scroll-mt-20 px-5 pt-20 pb-8 sm:px-8 md:pt-32 md:pb-12"
         >
           <SectionIntro
             icon={<Sparkles className="size-5 text-cyan-300" />}
@@ -204,10 +208,9 @@ export function ProactivReferenceLanding() {
           <RuixenBentoCards items={featureCards} className="mt-12" />
         </section>
 
-        <section className="relative bg-[#08090a] py-20 md:py-36">
+        <section className="relative bg-[#08090a] pt-8 pb-8 md:pt-12 md:pb-10">
           <div className="px-5 sm:px-8">
             <SectionIntro
-              icon={<Code2 className="size-5 text-cyan-300" />}
               title={m['reference.tools.title']()}
               description={m['reference.tools.description']()}
             />
@@ -216,7 +219,7 @@ export function ProactivReferenceLanding() {
             {tools.map(([title, description], index) => (
               <article
                 key={title}
-                className={`group grid gap-8 border-t border-white/10 py-12 last:border-b lg:items-center lg:gap-20 lg:py-24 ${
+                className={`group grid gap-8 border-t border-white/10 py-12 last:pb-0 lg:items-center lg:gap-20 lg:py-24 ${
                   index % 2 === 0
                     ? 'lg:grid-cols-[minmax(0,1.7fr)_minmax(0,0.85fr)]'
                     : 'lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.7fr)]'
@@ -258,67 +261,85 @@ export function ProactivReferenceLanding() {
           </div>
         </section>
 
-        <section className="relative overflow-hidden py-20 md:py-32">
+        <section className="relative overflow-hidden pt-8 pb-20 md:pt-10 md:pb-32">
           <AmbientLight />
           <SectionIntro
             icon={<WandSparkles className="size-5 text-cyan-300" />}
             title={m['reference.testimonials.title']()}
             description={m['reference.testimonials.description']()}
           />
-          <div className="relative mx-auto mt-14 min-h-[420px] max-w-7xl px-5 sm:px-8">
-            <div className="pointer-events-none absolute inset-0 grid grid-cols-2 gap-3 [mask-image:radial-gradient(circle_at_center,transparent_0%,black_73%)] opacity-20 md:grid-cols-4">
-              {testimonials.map(([name, designation, quote], index) => (
-                <div
-                  key={`${name}-${index}`}
-                  className="rounded-xl border border-white/15 bg-white/5 p-5"
-                >
-                  <p className="text-sm font-semibold text-white">{quote}</p>
-                  <p className="mt-6 text-xs font-semibold">{name}</p>
-                  <p className="mt-1 text-xs text-neutral-400">{designation}</p>
+          <div className="price-columns mx-auto mt-12 flex h-[620px] max-w-6xl justify-center gap-5 overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_90%,transparent)] px-5 sm:px-8">
+            <TestimonialsColumn testimonials={testimonials} duration={32} />
+            <TestimonialsColumn
+              testimonials={[
+                ...testimonials.slice(1),
+                ...testimonials.slice(0, 1),
+              ]}
+              duration={39}
+              className="hidden md:block"
+              decorative
+            />
+            <TestimonialsColumn
+              testimonials={[
+                ...testimonials.slice(2),
+                ...testimonials.slice(0, 2),
+              ]}
+              duration={35}
+              className="hidden lg:block"
+              decorative
+            />
+          </div>
+        </section>
+
+        <section className="px-5 pt-16 pb-8 sm:px-8">
+          <div className="relative mx-auto w-full max-w-3xl rounded-3xl border border-white/20 bg-[#101416]/95 p-7 sm:p-10">
+            <p className="text-sm tracking-wide text-cyan-200">
+              {m['h3.hero.rate']()}
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-6">
+              {Object.entries(REGULAR).map(([resolution, rate]) => (
+                <div key={resolution}>
+                  <h2 className="text-lg text-neutral-300">{resolution}</h2>
+                  <p className="mt-2 text-4xl font-semibold sm:text-5xl">
+                    ${rate.toFixed(2)}
+                    <span className="text-base text-neutral-400"> / sec</span>
+                  </p>
                 </div>
               ))}
             </div>
-            {activeQuote ? (
-              <div className="relative z-10 mx-auto flex min-h-[385px] max-w-3xl flex-col items-center justify-center text-center">
-                <div className="relative flex size-20 items-center justify-center rounded-full bg-gradient-to-b from-white/25 to-transparent p-px">
-                  <img
-                    src={activeQuote[3] ?? ''}
-                    alt={activeQuote[0]}
-                    className="size-[76px] rounded-full object-cover"
-                  />
-                </div>
-                <blockquote className="mt-7 text-lg leading-8 font-bold text-transparent [-webkit-background-clip:text] [background:linear-gradient(90deg,rgba(229,229,229,.55),#fff,rgba(229,229,229,.55))] sm:text-2xl sm:leading-10">
-                  {activeQuote[2]}
-                </blockquote>
-                <div className="mt-8 flex flex-wrap justify-center gap-2">
-                  {testimonials.map(([name, designation], index) => (
-                    <button
-                      key={name}
-                      type="button"
-                      onClick={() => setActiveTestimonial(index)}
-                      className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                        activeTestimonial === index
-                          ? 'border-cyan-300/60 bg-white/10 text-white'
-                          : 'border-white/10 bg-neutral-900/70 text-neutral-400 hover:text-white'
-                      }`}
-                    >
-                      <span className="font-bold">{name}</span>
-                      <span className="hidden text-neutral-500 sm:inline">
-                        {' '}
-                        — {designation}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
+            <p className="mt-6 text-sm leading-6 text-neutral-400">
+              {m['h3.hero.note']()}
+            </p>
+            <a
+              href={FAL_H3_MAX_MODEL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-block text-sm text-cyan-200 underline"
+            >
+              {m['h3.hero.source']()}
+            </a>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href="/cost-calculator"
+                className="rounded-lg bg-cyan-200 px-5 py-3 font-semibold text-black"
+              >
+                {m['h3.tools.calculator']()} →
+              </Link>
+              <Link
+                href="/prompt-generator"
+                className="rounded-lg border border-white/20 px-5 py-3 font-semibold text-white"
+              >
+                {m['h3.tools.prompt']()} →
+              </Link>
+            </div>
           </div>
         </section>
 
         <Pricing />
+        <H3Tools />
 
-        <section className="mx-auto max-w-7xl px-5 py-20 sm:px-8 md:py-32">
-          <div className="mx-auto mt-20 max-w-3xl">
+        <section className="mx-auto max-w-7xl px-5 pt-4 pb-20 sm:px-8 md:pt-6 md:pb-32">
+          <div className="mx-auto max-w-3xl">
             <h2 className="proactiv-reference-heading text-center text-3xl font-medium tracking-[-0.04em] sm:text-5xl">
               {m['reference.faq.title']()}
             </h2>
@@ -446,16 +467,20 @@ function SectionIntro({
   title,
   description,
 }: {
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   title: string;
   description: string;
 }) {
   return (
     <div className="relative z-10 text-center">
-      <div className="mx-auto flex size-11 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-white/5 shadow-[inset_0_1px_12px_rgba(255,255,255,0.08)]">
-        {icon}
-      </div>
-      <h2 className="proactiv-reference-heading mt-5 text-3xl font-medium tracking-[-0.045em] sm:text-5xl">
+      {icon && (
+        <div className="mx-auto flex size-11 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-white/5 shadow-[inset_0_1px_12px_rgba(255,255,255,0.08)]">
+          {icon}
+        </div>
+      )}
+      <h2
+        className={`proactiv-reference-heading ${icon ? 'mt-5' : ''}text-3xl font-medium tracking-[-0.045em] sm:text-5xl`}
+      >
         {title}
       </h2>
       <p className="mx-auto mt-5 max-w-2xl text-sm leading-6 text-neutral-400 sm:text-base">

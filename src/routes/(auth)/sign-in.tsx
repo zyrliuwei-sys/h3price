@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { authClient, signIn, useSession } from '@/core/auth/client';
 import { Link, useRouter } from '@/core/i18n/navigation';
 import { envConfigs } from '@/config';
+import { authRouteHead } from '@/lib/auth-route-head';
 import { resolveAfterAuthUrl, safeInternalPath } from '@/lib/redirect';
 import { m } from '@/paraglide/messages.js';
 import { localizeHref } from '@/paraglide/runtime.js';
@@ -53,7 +54,7 @@ function SignInPage() {
     if (sessionPending || navigatingRef.current) return;
     if (session?.user) {
       navigatingRef.current = true;
-      router.push('/admin');
+      router.push('/cost-calculator');
     }
   }, [sessionPending, session?.user, router]);
 
@@ -63,7 +64,7 @@ function SignInPage() {
   const afterLoginUrl = resolveAfterAuthUrl({
     redirect: redirectParam,
     callbackUrl,
-    fallback: '/admin',
+    fallback: '/cost-calculator',
   });
 
   // Carry callbackUrl/redirect across to sign-up so the destination survives the switch.
@@ -107,10 +108,14 @@ function SignInPage() {
             const verifyPath = `/verify-email?sent=1&email=${encodeURIComponent(
               value.email
             )}&callbackUrl=${encodeURIComponent(afterLoginUrl)}`;
-            void authClient.sendVerificationEmail({
+            const delivery = await authClient.sendVerificationEmail({
               email: value.email,
               callbackURL: localizeHref(afterLoginUrl),
             });
+            if (delivery.error) {
+              setError(delivery.error.message || 'Email delivery failed');
+              return;
+            }
             router.push(verifyPath);
             return;
           }
@@ -285,5 +290,6 @@ function SignInPage() {
 }
 
 export const Route = createFileRoute('/(auth)/sign-in')({
+  head: () => authRouteHead('sign-in'),
   component: SignInPage,
 });

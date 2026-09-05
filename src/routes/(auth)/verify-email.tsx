@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { authClient, useSession } from '@/core/auth/client';
 import { Link, useRouter } from '@/core/i18n/navigation';
 import { envConfigs } from '@/config';
+import { authRouteHead } from '@/lib/auth-route-head';
+import { safeInternalPath } from '@/lib/redirect';
 import { m } from '@/paraglide/messages.js';
 import { deLocalizeHref, localizeHref } from '@/paraglide/runtime.js';
 import { Button } from '@/components/ui/button';
@@ -21,14 +23,7 @@ import {
 const RESEND_COOLDOWN_SECONDS = 60;
 
 function safeDecodeCallbackUrl(raw?: string | null) {
-  if (!raw) return '/';
-  try {
-    const decoded = decodeURIComponent(raw);
-    if (decoded.startsWith('/')) return decoded;
-    return '/';
-  } catch {
-    return '/';
-  }
+  return safeInternalPath(raw) || '/';
 }
 
 function stripLocalePrefix(path: string) {
@@ -299,5 +294,6 @@ function VerifyEmailPage() {
 }
 
 export const Route = createFileRoute('/(auth)/verify-email')({
+  head: () => authRouteHead('verify-email'),
   component: VerifyEmailPage,
 });

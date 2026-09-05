@@ -566,3 +566,14 @@ export type NewTicketMessage = typeof ticketMessage.$inferInsert;
 
 // ─── Custom tables ───────────────────────────────────────────────────────────
 // Add your own tables below this line.
+
+// Explicit opt-in requests; accessed only by server-side services.
+export const priceAlert = table('price_alert', {
+  id: varchar('id', { length: 255 }).primaryKey(),
+  email: varchar('email', { length: 255 }).notNull().unique(),
+  consentVersion: varchar('consent_version', { length: 255 }).notNull(),
+  consentedAt: timestamp('consented_at')
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+export type PriceAlert = typeof priceAlert.$inferSelect;
