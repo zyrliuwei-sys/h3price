@@ -1421,7 +1421,7 @@ function VideoResultWorkspace({
       className="mx-auto grid w-full max-w-7xl gap-5 px-4 pt-6 pb-[180px] sm:px-6 sm:pt-8 sm:pb-[204px] lg:grid-cols-[minmax(0,1.6fr)_minmax(20rem,0.8fr)] lg:items-start xl:gap-7"
       aria-label={copy.generatedVideoLabel}
     >
-      <div className="min-w-0 rounded-[26px] border border-white/10 bg-[#0e1012] p-3 shadow-[0_18px_56px_rgba(0,0,0,0.28)] sm:p-4">
+      <div className="min-w-0">
         <div className="mb-4 flex items-center justify-between gap-3 px-1">
           <div>
             <p className="text-[10px] font-semibold tracking-[0.16em] text-[#e6a34c] uppercase">
