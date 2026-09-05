@@ -1,7 +1,6 @@
 import { envConfigs } from '@/config';
-import { grokPricingPlans } from '@/lib/grok-pricing-plans';
+import { h3MaxRetailPlans } from '@/lib/h3-max-retail-plans';
 import { m } from '@/paraglide/messages.js';
-import type { ProactivImagePromptGuideSummaryProps } from '@/components/proactiv/proactiv-image-prompt-guide-summary';
 import type { ProactivVideoShowcaseCase } from '@/components/proactiv/proactiv-video-showcase';
 import { ProactivVideoStudio } from '@/components/proactiv/proactiv-video-studio';
 import {
@@ -49,8 +48,6 @@ function navHref(id: string) {
       return '/text-to-image#studio-feed';
     case 'text-to-video':
       return '/text-to-image';
-    case 'prompt-guide':
-      return '/ai-image-prompt-guide';
     case 'home':
       return '/';
     case 'blog':
@@ -94,41 +91,6 @@ function studioCases(): ProactivVideoShowcaseCase[] {
   return [...feedCases, ...feedCases];
 }
 
-function summaryItems(value: string) {
-  return value
-    .split('\n')
-    .filter(Boolean)
-    .map((record) => {
-      const [title, description] = record.split('||');
-      return { description: description ?? '', title: title ?? '' };
-    });
-}
-
-function promptGuideSummary(): ProactivImagePromptGuideSummaryProps {
-  return {
-    definition: m['proactiv.image_studio.guide.definition']()
-      .split('\n')
-      .filter(Boolean),
-    features: summaryItems(m['proactiv.image_studio.guide.features.records']()),
-    featuresTitle: m['proactiv.image_studio.guide.features.title'](),
-    faqTitle: m['proactiv.image_studio.guide.faq.title'](),
-    faqs: summaryItems(m['proactiv.image_studio.guide.faq.records']()).map(
-      ({ description, title }) => ({ answer: description, question: title })
-    ),
-    guideHref: '/ai-image-prompt-guide',
-    guideLinkLabel: m['proactiv.image_studio.guide.link_label'](),
-    howItWorksTitle: m['proactiv.image_studio.guide.how_it_works.title'](),
-    steps: summaryItems(
-      m['proactiv.image_studio.guide.how_it_works.records']()
-    ),
-    useCases: summaryItems(
-      m['proactiv.image_studio.guide.use_cases.records']()
-    ),
-    useCasesTitle: m['proactiv.image_studio.guide.use_cases.title'](),
-    whatIsTitle: m['proactiv.image_studio.guide.what_is.title'](),
-  };
-}
-
 /** Localized content wiring for the immersive text-to-video workspace. */
 export function TextToVideo({
   initialPrompt,
@@ -138,19 +100,6 @@ export function TextToVideo({
   showTemplateFeed?: boolean;
 }) {
   const cases = studioCases();
-  const guideSummary = promptGuideSummary();
-  const guideFaqStructuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: guideSummary.faqs.map((faq) => ({
-      '@type': 'Question',
-      name: faq.question,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: faq.answer,
-      },
-    })),
-  };
 
   return (
     <SenziaAppShell
@@ -163,28 +112,11 @@ export function TextToVideo({
       expandSidebarLabel={m['proactiv.sidebar.expand']()}
       navGroups={navGroups()}
     >
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(guideFaqStructuredData).replace(
-            /</g,
-            '\\u003c'
-          ),
-        }}
-      />
       <ProactivVideoStudio
         cases={cases}
         initialPrompt={initialPrompt}
         showTemplateFeed={showTemplateFeed}
-        toolIntro={{
-          description: m['proactiv.image_studio.intro.description'](),
-          eyebrow: m['proactiv.image_studio.intro.eyebrow'](),
-          examplePrompts: m['proactiv.image_studio.intro.examples']()
-            .split('\n')
-            .filter(Boolean),
-          guideSummary,
-          title: m['proactiv.image_studio.intro.title'](),
-        }}
+        videoModelEnabled
         composerLabels={{
           addReference: m['proactiv.hero.composer.add_reference'](),
           aspectRatio: m['proactiv.hero.composer.aspect_ratio'](),
@@ -234,34 +166,34 @@ export function TextToVideo({
             m['proactiv.video.studio.credit_paywall.description'](),
           creditPackOptions: [
             {
-              productId: grokPricingPlans.essentials.oneTime.productId,
-              price: 10,
+              productId: h3MaxRetailPlans.essentials.oneTime.productId,
+              price: h3MaxRetailPlans.essentials.oneTime.priceInCents / 100,
               planName: m['landing.pricing.essentials'](),
               creditsLabel: m['landing.pricing.feature_credits']({
                 credits:
-                  grokPricingPlans.essentials.oneTime.credits.toLocaleString(
+                  h3MaxRetailPlans.essentials.oneTime.credits.toLocaleString(
                     'en-US'
                   ),
               }),
             },
             {
-              productId: grokPricingPlans.studio.oneTime.productId,
-              price: 30,
+              productId: h3MaxRetailPlans.studio.oneTime.productId,
+              price: h3MaxRetailPlans.studio.oneTime.priceInCents / 100,
               planName: m['landing.pricing.studio'](),
               creditsLabel: m['landing.pricing.feature_credits']({
                 credits:
-                  grokPricingPlans.studio.oneTime.credits.toLocaleString(
+                  h3MaxRetailPlans.studio.oneTime.credits.toLocaleString(
                     'en-US'
                   ),
               }),
             },
             {
-              productId: grokPricingPlans.production.oneTime.productId,
-              price: 59,
+              productId: h3MaxRetailPlans.production.oneTime.productId,
+              price: h3MaxRetailPlans.production.oneTime.priceInCents / 100,
               planName: m['landing.pricing.production'](),
               creditsLabel: m['landing.pricing.feature_credits']({
                 credits:
-                  grokPricingPlans.production.oneTime.credits.toLocaleString(
+                  h3MaxRetailPlans.production.oneTime.credits.toLocaleString(
                     'en-US'
                   ),
               }),

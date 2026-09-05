@@ -22,6 +22,7 @@ export interface PricingPlan {
   price: string;
   checkoutPrice?: string;
   billingNote?: string;
+  includedValue?: string;
   originalPrice?: string;
   currency?: string;
   interval?: string;
@@ -113,7 +114,7 @@ export function PricingTable({
         <div className="flex justify-center">
           <div
             aria-label={m['settings.billing.interval']()}
-            className="border-border bg-muted/50 inline-flex min-h-12 items-center rounded-xl border p-1"
+            className="inline-flex min-h-12 items-center rounded-2xl border border-white/10 bg-white/[0.055] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
             role="tablist"
           >
             {groups.map((group) => (
@@ -128,14 +129,14 @@ export function PricingTable({
                 className={cn(
                   'relative min-h-10 min-w-24 rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors duration-150',
                   activeGroup === group.key
-                    ? 'text-background'
-                    : 'text-muted-foreground hover:text-foreground focus-visible:text-foreground'
+                    ? 'text-[#090a0b]'
+                    : 'text-neutral-500 hover:text-white focus-visible:text-white'
                 )}
               >
                 {activeGroup === group.key && (
                   <motion.span
                     aria-hidden="true"
-                    className="bg-foreground absolute inset-0 rounded-lg"
+                    className="absolute inset-0 rounded-xl bg-white"
                     layoutId="pricing-period-indicator"
                     transition={
                       reduceMotion
@@ -173,10 +174,10 @@ export function PricingTable({
             <motion.article
               animate={{ opacity: 1, y: 0 }}
               className={cn(
-                'border-border relative flex min-w-0 flex-col rounded-2xl border p-6 transition-[transform,border-color,background-color] duration-200 ease-out sm:p-8',
+                'relative flex min-w-0 flex-col overflow-hidden rounded-[26px] border border-white/10 bg-[#121416] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] transition-[transform,border-color,background-color] duration-200 ease-out sm:p-8',
                 plan.featured
-                  ? 'from-primary/15 to-card ring-primary/20 bg-gradient-to-b ring-1'
-                  : 'bg-card hover:border-foreground/35 hover:bg-secondary/80'
+                  ? 'border-cyan-200/35 bg-[radial-gradient(circle_at_top,rgba(50,95,111,0.55),#121416_48%)] ring-1 ring-cyan-100/10'
+                  : 'hover:border-white/25 hover:bg-[#17191b]'
               )}
               initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
               key={`${activeGroup}-${plan.id}`}
@@ -187,12 +188,12 @@ export function PricingTable({
             >
               <div className="flex min-h-7 items-center justify-between gap-3">
                 {plan.name && (
-                  <p className="text-foreground text-base leading-7 font-semibold">
+                  <p className="text-base leading-7 font-semibold text-white">
                     {plan.name}
                   </p>
                 )}
                 {plan.badge && (
-                  <span className="bg-primary/15 text-primary rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap">
+                  <span className="rounded-full border border-cyan-100/15 bg-cyan-200/10 px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-cyan-100">
                     {plan.badge}
                   </span>
                 )}
@@ -203,7 +204,7 @@ export function PricingTable({
                   <motion.span
                     aria-live="polite"
                     animate={{ opacity: 1, y: 0 }}
-                    className="font-serif text-5xl font-semibold tracking-tight tabular-nums"
+                    className="font-serif text-5xl font-semibold tracking-tight text-white tabular-nums"
                     initial={
                       reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }
                     }
@@ -213,40 +214,46 @@ export function PricingTable({
                     {plan.price}
                   </motion.span>
                   {plan.interval && (
-                    <span className="text-muted-foreground mb-1 text-sm font-medium">
+                    <span className="mb-1 text-sm font-medium text-neutral-500">
                       /{plan.interval}
                     </span>
                   )}
                 </div>
                 {plan.originalPrice && (
-                  <span className="text-muted-foreground mt-1 block text-sm tabular-nums line-through">
+                  <span className="mt-1 block text-sm text-neutral-500 tabular-nums line-through">
                     {plan.originalPrice}
                   </span>
                 )}
                 {plan.billingNote && (
-                  <p className="text-muted-foreground mt-2 text-xs font-medium">
+                  <p className="mt-2 text-xs font-medium text-neutral-500">
                     {plan.billingNote}
                   </p>
                 )}
-                {typeof plan.credits === 'number' && (
-                  <p className="text-foreground mt-4 text-sm font-medium">
+                {plan.includedValue ? (
+                  <p className="mt-4 text-sm font-medium text-cyan-100">
+                    {plan.includedValue}
+                  </p>
+                ) : typeof plan.credits === 'number' ? (
+                  <p className="mt-4 text-sm font-medium text-white">
                     <span className="tabular-nums">
                       {m['landing.pricing.credits_after_payment']({
                         credits: plan.credits.toLocaleString('en-US'),
                       })}
                     </span>
                   </p>
-                )}
+                ) : null}
               </div>
 
-              <p className="text-muted-foreground mt-3 min-h-10 text-sm leading-5">
+              <p className="mt-3 min-h-10 text-sm leading-5 text-neutral-400">
                 {plan.description}
               </p>
 
               <Button
                 className={cn(
-                  'mt-7 h-11 w-full rounded-full text-sm font-semibold whitespace-nowrap !transition-[transform,background-color,border-color] duration-150 ease-out active:translate-y-px',
-                  plan.featured && 'hover:bg-primary/90'
+                  'mt-7 h-11 w-full rounded-full border text-sm font-semibold whitespace-nowrap !transition-[transform,background-color,border-color] duration-150 ease-out active:translate-y-px',
+                  plan.featured
+                    ? '!border-white !bg-white !text-[#0b0c0d] hover:!bg-cyan-50'
+                    : 'border-white/15 bg-white/[0.035] text-white hover:bg-white/[0.1]'
                 )}
                 disabled={loadingId === plan.id}
                 onClick={() => handleCheckout(plan)}
@@ -272,12 +279,10 @@ export function PricingTable({
                         aria-hidden="true"
                         className={cn(
                           'mt-0.5 size-4 shrink-0',
-                          plan.featured
-                            ? 'text-primary'
-                            : 'text-muted-foreground'
+                          plan.featured ? 'text-cyan-200' : 'text-neutral-500'
                         )}
                       />
-                      <span className="text-foreground/90">{label}</span>
+                      <span className="text-neutral-200">{label}</span>
                     </li>
                   );
                 })}

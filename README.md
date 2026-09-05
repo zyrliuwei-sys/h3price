@@ -2,6 +2,43 @@
 
 A headless SaaS engine for building AI-powered products with Claude Code. Pre-wired business logic (payments, credits, subscriptions, auth, RBAC, i18n, CMS) with minimal UI — you build your product pages on top.
 
+## H3 Max pricing content
+
+The public SEO surface has four indexable H3 Max pages. Their pricing facts are
+centralized in [`src/lib/pricing.ts`](./src/lib/pricing.ts), not copied into
+components. Before changing a price, free allowance, or promotion, verify the
+official pages first:
+
+- https://fal.ai/minimax-h3-max
+- https://fal.ai/models/minimax/h3-max/text-to-video
+- https://fal.ai/models/minimax/h3/text-to-video (base MiniMax H3 comparison)
+- https://ai.google.dev/gemini-api/docs/pricing (Veo 3.1 comparison)
+
+`REGULAR` controls normal H3 Max 480p/768p rates, `FREE_DAILY` controls the
+calculator’s qualifying allowance, and `PROMO.discountPct` is deliberately `0`
+until a single current official promotional rate is selected. Do not infer a
+sale rate when official pages use different launch wording.
+
+| Page                | Target keyword                | Internal links                                                                               |
+| ------------------- | ----------------------------- | -------------------------------------------------------------------------------------------- |
+| `/`                 | `h3 max pricing`              | Header links to all tools; price cards open the calculator; hero opens the prompt generator. |
+| `/cost-calculator`  | `h3 max cost calculator`      | Links to the home pricing guide and prompt generator.                                        |
+| `/prompt-generator` | `minimax h3 prompt generator` | Reached from the header, homepage hero, and calculator.                                      |
+| `/vs/veo-3-1`       | `h3 max vs veo 3.1`           | Links to the calculator and both official source pages.                                      |
+
+### Analytics and Search Console
+
+The root shell renders GA4 or Plausible only when the existing analytics
+configuration is present, so a missing ID never blocks a build. Set the Google
+Analytics measurement ID or Plausible domain/source in **Admin → Settings →
+Analytics** (or the corresponding deployment configuration used by your
+environment), then verify the script appears in production HTML.
+
+For Google Search Console: verify the `h3price.com` domain property, submit
+`https://h3price.com/sitemap.xml`, inspect each of the four URLs, and request
+indexing only after the production canonical URLs resolve. Recheck the official
+pricing sources whenever fal.ai or Google changes a model page.
+
 ## Quick Start
 
 ```bash

@@ -34,7 +34,7 @@ export class R2Provider implements StorageProvider {
   }
 
   private getUploadPath() {
-    let uploadPath = this.configs.uploadPath || 'uploads';
+    let uploadPath = (this.configs.uploadPath || 'uploads').trim();
     if (uploadPath.startsWith('/')) {
       uploadPath = uploadPath.slice(1);
     }
@@ -46,7 +46,7 @@ export class R2Provider implements StorageProvider {
 
   private getEndpoint() {
     return (
-      this.configs.endpoint ||
+      this.configs.endpoint?.trim() ||
       `https://${this.configs.accountId}.r2.cloudflarestorage.com`
     );
   }
@@ -55,9 +55,8 @@ export class R2Provider implements StorageProvider {
     const uploadBucket = options.bucket || this.configs.bucket;
     const uploadPath = this.getUploadPath();
     const url = `${this.getEndpoint()}/${uploadBucket}/${uploadPath}/${options.key}`;
-    return this.configs.publicDomain
-      ? `${this.configs.publicDomain}/${uploadPath}/${options.key}`
-      : url;
+    const publicDomain = this.configs.publicDomain?.trim().replace(/\/+$/, '');
+    return publicDomain ? `${publicDomain}/${uploadPath}/${options.key}` : url;
   };
 
   exists = async (options: { key: string; bucket?: string }) => {

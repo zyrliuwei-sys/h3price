@@ -1,4 +1,4 @@
-export const SITE_URL = 'https://www.uncensoredaieditor.com';
+export const SITE_URL = 'https://h3price.com';
 
 export const DEFAULT_SOCIAL_IMAGE_URL = `${SITE_URL}/proactiv/showcase-videos/neon-dancer.jpg`;
 export const TEXT_TO_IMAGE_SOCIAL_IMAGE_URL = `${SITE_URL}/imgs/image/meigen-2010358364048597154.jpg`;

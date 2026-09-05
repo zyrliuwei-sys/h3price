@@ -3,7 +3,6 @@ import {
   ArrowRight,
   BarChart3,
   Bot,
-  Check,
   ChevronDown,
   Code2,
   Mail,
@@ -18,10 +17,15 @@ import { useRouter } from '@/core/i18n/navigation';
 import { m } from '@/paraglide/messages.js';
 import { Footer } from '@/blocks/footer';
 import { Header } from '@/blocks/header';
+import { Pricing } from '@/blocks/pricing';
 import {
   ProactivHeroComposer,
   type ProactivHeroComposerLabels,
 } from '@/components/proactiv/proactiv-hero-composer';
+import {
+  RuixenBentoCards,
+  type RuixenBentoCardItem,
+} from '@/components/ruixen-bento-cards';
 
 type ReferenceRecord = readonly [string, ...string[]];
 
@@ -82,15 +86,20 @@ const toolVideos = [
 export function ProactivReferenceLanding() {
   const router = useRouter();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const [yearly, setYearly] = useState(false);
   const testimonials = useMemo(
     () => parseRecords(m['reference.testimonials.records']()),
     []
   );
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   const features = parseRecords(m['reference.features.records']());
+  const featureCards: RuixenBentoCardItem[] = features.map(
+    ([title, description], index) => ({
+      title,
+      description: description ?? '',
+      icon: featureIcons[index] ?? Sparkles,
+    })
+  );
   const tools = parseRecords(m['reference.tools.records']());
-  const tiers = parseRecords(m['reference.pricing.tiers']());
   const faqs = parseRecords(m['reference.faq.records']());
 
   useEffect(() => {
@@ -103,12 +112,7 @@ export function ProactivReferenceLanding() {
     return () => window.clearInterval(id);
   }, [testimonials.length]);
 
-  const scrollToComposer = () => {
-    document.getElementById('proactiv-reference-composer')?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
-    });
-  };
+  const openPromptGenerator = () => router.push('/prompt-generator');
 
   const activeQuote = testimonials[activeTestimonial] ?? testimonials[0];
 
@@ -141,7 +145,7 @@ export function ProactivReferenceLanding() {
 
           <div className="relative z-20 mt-12 w-full px-0 sm:mt-16 md:px-12">
             <div className="absolute -inset-x-10 -inset-y-16 -z-10 rounded-[4rem] bg-[radial-gradient(circle_at_50%_0%,rgba(57,195,239,0.18),transparent_53%)] blur-2xl" />
-            <div className="proactiv-reference-console relative mx-auto max-w-6xl rounded-[28px] border-4 border-neutral-900 bg-[#161719] p-1.5 shadow-[0_9px_20px_rgba(0,0,0,0.4),0_37px_37px_rgba(0,0,0,0.32),0_84px_50px_rgba(0,0,0,0.2)] md:p-2">
+            <div className="proactiv-reference-console relative mx-auto max-w-5xl rounded-[28px] border-4 border-neutral-900 bg-[#161719] p-1.5 shadow-[0_9px_20px_rgba(0,0,0,0.4),0_37px_37px_rgba(0,0,0,0.32),0_84px_50px_rgba(0,0,0,0.2)] md:p-2">
               <div className="absolute top-0 left-[12%] h-px w-2/3 bg-gradient-to-r from-transparent via-cyan-300 to-transparent" />
               <div className="rounded-[18px] border border-white/10 bg-[#0e1011] p-2 sm:p-3">
                 <div id="proactiv-reference-composer" className="scroll-mt-24">
@@ -176,7 +180,7 @@ export function ProactivReferenceLanding() {
             </div>
             <button
               type="button"
-              onClick={scrollToComposer}
+              onClick={openPromptGenerator}
               className="group inline-flex items-center gap-2 rounded-md bg-white px-5 py-3 text-base font-semibold text-black transition-transform hover:-translate-y-0.5"
             >
               {m['reference.hero.cta']()}
@@ -197,17 +201,7 @@ export function ProactivReferenceLanding() {
             title={m['reference.features.title']()}
             description={m['reference.features.description']()}
           />
-          <div className="mt-12 grid grid-cols-1 gap-2 lg:grid-cols-3">
-            {features.map(([title, description], index) => (
-              <FeatureCard
-                key={title}
-                title={title}
-                description={description ?? ''}
-                index={index}
-                className={index === 0 ? 'lg:col-span-2' : ''}
-              />
-            ))}
-          </div>
+          <RuixenBentoCards items={featureCards} className="mt-12" />
         </section>
 
         <section className="relative bg-[#08090a] py-20 md:py-36">
@@ -321,91 +315,9 @@ export function ProactivReferenceLanding() {
           </div>
         </section>
 
-        <section
-          id="pricing"
-          className="mx-auto max-w-7xl scroll-mt-20 px-5 py-20 sm:px-8 md:py-32"
-        >
-          <SectionIntro
-            icon={<BarChart3 className="size-5 text-cyan-300" />}
-            title={m['reference.pricing.title']()}
-            description={m['reference.pricing.description']()}
-          />
-          <div className="mt-9 flex justify-center">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={yearly}
-              onClick={() => setYearly((value) => !value)}
-              className="inline-flex items-center gap-3 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-neutral-300"
-            >
-              <span className={!yearly ? 'text-white' : ''}>
-                {m['reference.pricing.monthly']()}
-              </span>
-              <span className="flex h-5 w-9 items-center rounded-full bg-neutral-700 p-0.5">
-                <span
-                  className={`size-4 rounded-full bg-white transition-transform ${yearly ? 'translate-x-4' : ''}`}
-                />
-              </span>
-              <span className={yearly ? 'text-white' : ''}>
-                {m['reference.pricing.yearly']()}
-              </span>
-            </button>
-          </div>
-          <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {tiers.map(
-              ([title, description, monthly, annual, cta, features], index) => {
-                const featured = index === 2;
-                const price =
-                  title === 'Enterprise'
-                    ? 'Custom'
-                    : `$${yearly ? annual : monthly} / ${yearly ? 'year' : 'month'}`;
-                return (
-                  <article
-                    key={title}
-                    className={`relative flex min-h-[500px] flex-col rounded-xl border p-6 ${
-                      featured
-                        ? 'overflow-hidden border-cyan-200/20 bg-[radial-gradient(circle_at_top,rgba(38,38,38,1),#0a0a0a_70%)]'
-                        : 'border-white/10 bg-white/[0.025]'
-                    }`}
-                  >
-                    {featured ? (
-                      <span className="absolute top-0 left-[15%] h-px w-[70%] bg-gradient-to-r from-transparent via-cyan-300 to-transparent" />
-                    ) : null}
-                    <h3 className="text-base font-medium">{title}</h3>
-                    <p className="mt-4 text-lg font-medium text-neutral-300">
-                      {price}
-                    </p>
-                    <p className="mt-4 text-sm leading-6 text-neutral-400">
-                      {description}
-                    </p>
-                    <ul className="mt-5 space-y-3">
-                      {features?.split('~~').map((feature) => (
-                        <li
-                          key={feature}
-                          className="flex gap-2 text-sm leading-5 text-neutral-300"
-                        >
-                          <Check className="mt-0.5 size-4 shrink-0 text-neutral-200" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                    <button
-                      type="button"
-                      onClick={scrollToComposer}
-                      className={`mt-auto inline-flex items-center justify-center rounded-md px-4 py-2.5 text-sm font-semibold transition-colors ${
-                        featured
-                          ? 'bg-white text-black hover:bg-neutral-200'
-                          : 'bg-neutral-800 text-white hover:bg-neutral-700'
-                      }`}
-                    >
-                      {cta}
-                    </button>
-                  </article>
-                );
-              }
-            )}
-          </div>
-          <LogoMarquee />
+        <Pricing />
+
+        <section className="mx-auto max-w-7xl px-5 py-20 sm:px-8 md:py-32">
           <div className="mx-auto mt-20 max-w-3xl">
             <h2 className="proactiv-reference-heading text-center text-3xl font-medium tracking-[-0.04em] sm:text-5xl">
               {m['reference.faq.title']()}
@@ -549,70 +461,6 @@ function SectionIntro({
       <p className="mx-auto mt-5 max-w-2xl text-sm leading-6 text-neutral-400 sm:text-base">
         {description}
       </p>
-    </div>
-  );
-}
-
-function FeatureCard({
-  title,
-  description,
-  index,
-  className,
-}: {
-  title: string;
-  description: string;
-  index: number;
-  className?: string;
-}) {
-  const Icon = featureIcons[index] ?? Sparkles;
-  return (
-    <article
-      className={`group overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] p-8 shadow-[inset_2px_4px_16px_rgba(248,248,248,0.06)] ${className ?? ''}`}
-    >
-      <div className="flex h-48 items-center justify-center overflow-hidden rounded-xl bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.08),transparent_67%)]">
-        <div className="relative flex size-24 items-center justify-center rounded-2xl border border-white/15 bg-neutral-900 shadow-[0_0_42px_rgba(57,195,239,0.12)] transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3">
-          <Icon className="size-10 text-cyan-300" />
-          <span className="absolute -right-4 -bottom-4 flex size-10 items-center justify-center rounded-full border border-white/15 bg-neutral-800 text-xs text-neutral-300">
-            0{index + 1}
-          </span>
-        </div>
-      </div>
-      <h3 className="pt-7 text-lg font-semibold text-white">{title}</h3>
-      <p className="mt-2 max-w-sm text-sm leading-6 text-neutral-400">
-        {description}
-      </p>
-    </article>
-  );
-}
-
-function LogoMarquee() {
-  const logos = [
-    'netflix',
-    'google',
-    'meta',
-    'onlyfans',
-    'netflix',
-    'google',
-    'meta',
-    'onlyfans',
-  ];
-  const ext: Record<string, string> = { google: 'webp' };
-  return (
-    <div className="relative mt-20 overflow-hidden py-7">
-      <p className="mb-5 text-center text-sm text-neutral-400">
-        Trusted by big industries
-      </p>
-      <div className="proactiv-reference-marquee flex w-max items-center gap-14 opacity-75 grayscale">
-        {logos.map((logo, index) => (
-          <img
-            key={`${logo}-${index}`}
-            src={`/proactiv-reference/logos/${logo}.${ext[logo] ?? 'png'}`}
-            alt={logo}
-            className="h-11 w-28 object-contain"
-            loading="lazy"
-          />
-        ))}
-      </div>
     </div>
   );
 }

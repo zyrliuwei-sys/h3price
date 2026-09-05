@@ -118,14 +118,20 @@ export class FalProvider implements AIProvider {
     taskId,
     model,
     mediaType,
+    statusUrl: statusUrlOverride,
+    responseUrl: responseUrlOverride,
   }: {
     taskId: string;
     model?: string;
     mediaType?: AIMediaType;
+    statusUrl?: string;
+    responseUrl?: string;
   }): Promise<AITaskResult> {
     const queryModel = this.getQueryModel(model);
 
-    const statusUrl = `${this.baseUrl}/${queryModel}/requests/${taskId}/status`;
+    const statusUrl = this.isQueueUrl(statusUrlOverride)
+      ? statusUrlOverride
+      : `${this.baseUrl}/${queryModel}/requests/${taskId}/status`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Authorization: `Key ${this.configs.apiKey}`,
@@ -153,7 +159,9 @@ export class FalProvider implements AIProvider {
       };
     }
 
-    const resultUrl = `${this.baseUrl}/${queryModel}/requests/${taskId}`;
+    const resultUrl = this.isQueueUrl(responseUrlOverride)
+      ? responseUrlOverride
+      : `${this.baseUrl}/${queryModel}/requests/${taskId}`;
     const resultResp = await fetch(resultUrl, { method: 'GET', headers });
 
     if (!resultResp.ok) {
@@ -288,23 +296,32 @@ export class FalProvider implements AIProvider {
         return AITaskStatus.SUCCESS;
       case 'FAILED':
         return AITaskStatus.FAILED;
+      case 'CANCELED':
+      case 'CANCELLED':
+        return AITaskStatus.CANCELED;
       default:
         throw new Error(`unknown status: ${status}`);
     }
   }
 
   private getQueryModel(model?: string): string {
-    if (!model) {
-      return '';
+    // Fal queue status and result URLs are scoped to the complete model slug.
+    // In particular, MiniMax H3 Max uses three path segments
+    // (`minimax/h3-max/<workflow>`), so truncating this to two segments would
+    // query a different endpoint and make a successfully queued task appear
+    // unavailable.
+    return model ?? '';
+  }
+
+  private isQueueUrl(value?: string): value is string {
+    if (!value) return false;
+
+    try {
+      const url = new URL(value);
+      return url.protocol === 'https:' && url.hostname === 'queue.fal.run';
+    } catch {
+      return false;
     }
-    if (model === 'fal-ai/flux-2/edit') {
-      return model;
-    }
-    const parts = model.split('/');
-    if (parts.length <= 2) {
-      return model;
-    }
-    return `${parts[0]}/${parts[1]}`;
   }
 
   private formatInput({

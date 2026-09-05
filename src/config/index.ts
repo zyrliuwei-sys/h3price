@@ -19,7 +19,7 @@ export const envConfigs: Record<string, string> = {
   app_name: publicEnv('VITE_APP_NAME') ?? 'h3price ai',
   app_description:
     publicEnv('VITE_APP_DESCRIPTION') ??
-    'h3price ai is an AI video generation platform for cinematic concepts, polished motion, and fast creative iteration.',
+    'H3 Max pricing, a cost calculator, and a MiniMax H3 prompt generator.',
   app_logo: publicEnv('VITE_APP_LOGO') ?? '',
 
   // Database

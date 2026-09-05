@@ -29,10 +29,6 @@ import {
   type ProactivGenerationValues,
   type ProactivHeroComposerLabels,
 } from '@/components/proactiv/proactiv-hero-composer';
-import {
-  ProactivImagePromptGuideSummary,
-  type ProactivImagePromptGuideSummaryProps,
-} from '@/components/proactiv/proactiv-image-prompt-guide-summary';
 import type { ProactivVideoShowcaseCase } from '@/components/proactiv/proactiv-video-showcase';
 import {
   Tooltip,
@@ -95,16 +91,7 @@ export interface ProactivVideoStudioProps {
   copy: ProactivVideoStudioCopy;
   initialPrompt?: string;
   showTemplateFeed?: boolean;
-  toolIntro?: ProactivVideoStudioToolIntro;
   videoModelEnabled?: boolean;
-}
-
-export interface ProactivVideoStudioToolIntro {
-  description: string;
-  examplePrompts: readonly string[];
-  eyebrow: string;
-  guideSummary: ProactivImagePromptGuideSummaryProps;
-  title: string;
 }
 
 const galleryLayouts = [
@@ -124,6 +111,7 @@ const galleryLayouts = [
 const maximumImageReferenceCount = 10;
 const maximumGrokImageReferenceCount = 3;
 const GROK_IMAGINE_IMAGE_API = '/api/evolink/grok-imagine-image';
+const H3_MAX_API = '/api/fal/h3-max';
 const paymentProviders: PaymentProvider[] = [
   'stripe',
   'creem',
@@ -337,14 +325,15 @@ function promptWithReferenceGuidance(
 // A submission creates a paid upstream task. Users retry explicitly instead
 // of through an automatic client retry that could trigger a second charge.
 async function createMotionControlTask(payload: {
+  aspectRatio: string;
+  duration?: number;
+  imageUrls?: string[];
+  mode: 'text-to-video' | 'image-to-video' | 'reference-to-video';
   prompt: string;
-  imageUrls: string[];
-  videoUrls: string[];
-  quality: '720p';
-  characterOrientation: 'image';
-  keepSound: boolean;
+  resolution: '480P' | '768P';
+  videoUrls?: string[];
 }): Promise<MotionControlTask> {
-  return apiPost<MotionControlTask>('/api/evolink/motion-control', payload);
+  return apiPost<MotionControlTask>(H3_MAX_API, payload);
 }
 
 async function createGrokImagineImageTask(payload: {
@@ -420,7 +409,6 @@ export function ProactivVideoStudio({
   copy,
   initialPrompt = '',
   showTemplateFeed = true,
-  toolIntro,
   videoModelEnabled = false,
 }: ProactivVideoStudioProps) {
   const queryClient = useQueryClient();
@@ -471,6 +459,8 @@ export function ProactivVideoStudio({
   const [selectedImagePreviewId, setSelectedImagePreviewId] = useState<
     string | null
   >(null);
+  const [isVideoPreviewVisible, setIsVideoPreviewVisible] = useState(true);
+  const [selectedVideoPreviewIndex, setSelectedVideoPreviewIndex] = useState(0);
   const [dismissedTaskId, setDismissedTaskId] = useState<string | null>(null);
   const [retryValues, setRetryValues] =
     useState<ProactivGenerationValues | null>(null);
@@ -524,14 +514,12 @@ export function ProactivVideoStudio({
   });
 
   const taskQuery = useQuery({
-    queryKey: ['evolink-motion-control', motionTask?.id],
+    queryKey: ['fal-h3-max', motionTask?.id],
     queryFn: () =>
       apiGet<MotionControlTask>(
-        `/api/evolink/motion-control?taskId=${encodeURIComponent(motionTask!.id)}`
+        `${H3_MAX_API}?taskId=${encodeURIComponent(motionTask!.id)}`
       ),
-    enabled: Boolean(
-      videoModelEnabled && motionTask && !isTerminalTask(motionTask.status)
-    ),
+    enabled: Boolean(motionTask && !isTerminalTask(motionTask.status)),
     refetchInterval: (query) =>
       isTerminalTask(query.state.data?.status ?? motionTask?.status ?? '')
         ? false
@@ -552,9 +540,9 @@ export function ProactivVideoStudio({
   });
 
   const recentTasksQuery = useQuery({
-    queryKey: ['evolink-motion-control', 'recent'],
-    queryFn: () => apiGet<MotionControlTask[]>('/api/evolink/motion-control'),
-    enabled: Boolean(videoModelEnabled && session?.user),
+    queryKey: ['fal-h3-max', 'recent'],
+    queryFn: () => apiGet<MotionControlTask[]>(H3_MAX_API),
+    enabled: Boolean(session?.user),
     staleTime: 15_000,
   });
 
@@ -629,23 +617,21 @@ export function ProactivVideoStudio({
       retryValues?.prompt ??
       ''
   );
-  // The preview is a transient detail panel. Closing its current image should
+  const selectedVideoPreviewUrl =
+    isVideoPreviewVisible &&
+    motionTask?.status === 'success' &&
+    motionTask.resultUrls.length
+      ? (motionTask.resultUrls[selectedVideoPreviewIndex] ??
+        motionTask.resultUrls[0])
+      : null;
+  // The preview is a transient detail panel. Closing its current asset should
   // reclaim the workspace rather than leaving an empty panel behind.
-  const isPreviewPanelOpen = Boolean(selectedImagePreview);
+  const isPreviewPanelOpen = Boolean(
+    selectedVideoPreviewUrl || selectedImagePreview
+  );
   // History remains available independently of the transient preview panel, so
   // previously generated images stay above the composer after a preview closes.
   const hasImageHistory = chatTurns.length > 0;
-  // On the empty text-to-image workspace, the guide belongs on the right while
-  // the composer anchors the creation side on the left. Once a conversation or
-  // a preview exists, both return to the shared workspace column.
-  const isSplitIntroWorkspace = Boolean(
-    toolIntro &&
-    !showTemplateFeed &&
-    !hasImageHistory &&
-    !isImageGenerationActive &&
-    !isPreviewPanelOpen
-  );
-
   // Keep the latest chat turn in view.
   useEffect(() => {
     if (!chatTurns.length && !isImageGenerationActive) return;
@@ -653,7 +639,6 @@ export function ProactivVideoStudio({
   }, [chatTurns, isImageGenerationActive]);
 
   useEffect(() => {
-    if (!videoModelEnabled) return;
     if (!taskQuery.data || taskQuery.data.id === dismissedTaskId) return;
     setMotionTask(taskQuery.data);
     setIsQueued(!isTerminalTask(taskQuery.data.status));
@@ -663,12 +648,38 @@ export function ProactivVideoStudio({
     if (taskQuery.data.status === 'success') {
       setShowRetry(false);
       void queryClient.invalidateQueries({
-        queryKey: ['evolink-motion-control', 'recent'],
+        queryKey: ['fal-h3-max', 'recent'],
       });
     } else if (['failed', 'canceled'].includes(taskQuery.data.status)) {
       setShowRetry(true);
     }
-  }, [dismissedTaskId, queryClient, taskQuery.data, videoModelEnabled]);
+  }, [dismissedTaskId, queryClient, taskQuery.data]);
+
+  useEffect(() => {
+    if (motionTask?.status !== 'success' || !motionTask.resultUrls.length) {
+      return;
+    }
+
+    setSelectedImagePreviewId(null);
+    setSelectedVideoPreviewIndex(0);
+    setIsVideoPreviewVisible(true);
+  }, [motionTask?.id, motionTask?.resultUrls.length, motionTask?.status]);
+
+  useEffect(() => {
+    if (!taskQuery.error || !motionTask || isTerminalTask(motionTask.status)) {
+      return;
+    }
+
+    const message =
+      taskQuery.error instanceof Error
+        ? taskQuery.error.message
+        : copy.videoUnavailableMessage;
+    setMotionTask({ ...motionTask, errorMessage: message, status: 'failed' });
+    setIsQueued(false);
+    setPendingPrompt(null);
+    setShowRetry(true);
+    toast.error(message);
+  }, [copy.videoUnavailableMessage, motionTask, taskQuery.error]);
 
   useEffect(() => {
     if (!imageTaskQuery.data || imageTaskQuery.data.id === dismissedTaskId) {
@@ -769,92 +780,57 @@ export function ProactivVideoStudio({
     mutationFn: async (
       values: ProactivGenerationValues
     ): Promise<GenerationTask> => {
-      const images = values.references.filter(
-        (reference) => reference.type === 'image'
-      );
-      if (
-        (values.mode === 'text' || values.mode === 'edit') &&
-        images.length === 0
-      ) {
-        if (!values.prompt.trim()) {
-          throw new Error(copy.imageUploadsRequiredMessage);
-        }
+      const prompt = promptWithStyle(values);
+      if (!prompt.trim()) throw new Error(copy.imageUploadsRequiredMessage);
 
-        const task = await createGrokImagineImageTask({
-          prompt: promptWithStyle(values),
-          n: values.batchSize,
-          resolution: values.resolution,
-          size: grokImageSizeByAspectRatio[values.aspectRatio] ?? 'auto',
-        });
-        return { kind: 'image', task };
+      if (values.mode === 'text') {
+        return {
+          kind: 'video',
+          task: await createMotionControlTask({
+            aspectRatio: values.aspectRatio,
+            duration: values.duration,
+            mode: 'text-to-video',
+            prompt,
+            resolution: values.resolution,
+          }),
+        };
       }
 
-      // Reference images always take precedence over the text-only path. This
-      // keeps every image selected through the composer in the model request,
-      // even if a mode update and a generate click happen in quick succession.
-      if (values.mode === 'edit' || images.length > 0) {
-        if (!values.prompt.trim() || !images.length) {
-          throw new Error(copy.imageUploadsRequiredMessage);
-        }
-
-        const referenceUploads = await prepareGrokReferenceUploads(images);
-        const formData = new FormData();
-        for (const file of referenceUploads.files) {
-          formData.append('files', file, file.name);
-        }
-        const uploaded = await apiUpload<{ images: string[] }>(
-          '/api/storage/upload-media',
-          formData
-        );
-        if (!uploaded.images.length) {
-          throw new Error(copy.imageUploadsRequiredMessage);
-        }
-
-        const task = await createGrokImagineImageTask({
-          prompt: promptWithReferenceGuidance(
-            values,
-            referenceUploads.usesSheets
-          ),
-          imageUrls: uploaded.images.slice(0, maximumGrokImageReferenceCount),
-          n: values.batchSize,
-          resolution: values.resolution,
-          size: grokImageSizeByAspectRatio[values.aspectRatio] ?? 'auto',
-        });
-        return { kind: 'image', task };
-      }
-
-      if (!videoModelEnabled) {
-        throw new Error(copy.videoUnavailableMessage);
-      }
-
-      const avatarImage = values.references.find(
-        (reference) => reference.slot === 'avatar' && reference.type === 'image'
-      );
-      const motionVideo = values.references.find(
-        (reference) =>
-          reference.slot === 'product' && reference.type === 'video'
-      );
-      if (!avatarImage || !motionVideo) {
-        throw new Error(copy.uploadsRequiredMessage);
-      }
+      const references =
+        values.mode === 'edit'
+          ? values.references.filter((reference) => reference.type === 'image')
+          : values.references;
+      if (!references.length) throw new Error(copy.uploadsRequiredMessage);
 
       const formData = new FormData();
-      for (const reference of [avatarImage, motionVideo]) {
+      for (const reference of references) {
         formData.append('files', reference.file, reference.name);
       }
       const uploaded = await apiUpload<{ images: string[]; videos: string[] }>(
         '/api/storage/upload-media',
         formData
       );
-      const task = await createMotionControlTask({
-        prompt: promptWithStyle(values),
-        imageUrls: uploaded.images,
-        videoUrls: uploaded.videos,
-        quality: '720p',
-        characterOrientation: 'image',
-        keepSound: true,
-      });
-      return { kind: 'video', task };
+      const imageUrls = uploaded.images ?? [];
+      const videoUrls = uploaded.videos ?? [];
+      if (!imageUrls.length && !videoUrls.length) {
+        throw new Error(copy.uploadsRequiredMessage);
+      }
+
+      return {
+        kind: 'video',
+        task: await createMotionControlTask({
+          aspectRatio: values.aspectRatio,
+          duration: values.duration,
+          imageUrls,
+          mode:
+            values.mode === 'edit' && imageUrls.length === 1
+              ? 'image-to-video'
+              : 'reference-to-video',
+          prompt,
+          resolution: values.resolution,
+          videoUrls,
+        }),
+      };
     },
     onSuccess: (result, values) => {
       setDismissedTaskId(null);
@@ -903,10 +879,10 @@ export function ProactivVideoStudio({
       return;
     }
 
-    // Accounts without the free-image entitlement never submit an unpaid
-    // generation request. With no balance, open checkout immediately instead.
-    // Treat an unavailable session entitlement as no entitlement, too.
-    if (freeImageTrialAvailable !== true && creditsQuery.data?.balance === 0) {
+    // H3 Max is charged in video-seconds. Avoid submitting a paid task when
+    // the account has no credits, while still letting an unloaded balance wait
+    // for the server to make the final authorization decision.
+    if (creditsQuery.data?.balance === 0) {
       setRetryValues(values);
       openCreditPaywall(values.prompt);
       return;
@@ -917,6 +893,8 @@ export function ProactivVideoStudio({
     setDismissedTaskId(null);
     setMotionTask(null);
     setImageTask(null);
+    setSelectedVideoPreviewIndex(0);
+    setIsVideoPreviewVisible(true);
     setIsQueued(true);
     setPendingPrompt(values.prompt);
     // ChatGPT-style send: the prompt moves into the thread and the composer
@@ -930,9 +908,8 @@ export function ProactivVideoStudio({
     startGeneration(retryValues);
   }
 
-  // ChatGPT-style "regenerate": re-run a turn's prompt as a fresh text-to-image
-  // request. Reference files from earlier submissions are intentionally not
-  // reused — only the prompt travels with the turn.
+  // Regenerate a turn through the H3 Max text-to-video endpoint. Reference
+  // files from earlier submissions are intentionally not reused.
   function regenerateFromTurn(turn: StudioChatTurn) {
     if (generationMutation.isPending) return;
     startGeneration({
@@ -941,7 +918,7 @@ export function ProactivVideoStudio({
       mode: 'text',
       prompt: turn.prompt,
       references: [],
-      resolution: retryValues?.resolution ?? '1K',
+      resolution: retryValues?.resolution ?? '768P',
       style: '',
     });
   }
@@ -996,7 +973,6 @@ export function ProactivVideoStudio({
   }
 
   useEffect(() => {
-    if (!videoModelEnabled) return;
     if (generationMutation.isPending || isQueued || motionTask || imageTask) {
       return;
     }
@@ -1011,7 +987,6 @@ export function ProactivVideoStudio({
     isQueued,
     motionTask,
     recentTasksQuery.data,
-    videoModelEnabled,
   ]);
 
   const selectCase = (videoCase: ProactivVideoShowcaseCase) => {
@@ -1021,28 +996,15 @@ export function ProactivVideoStudio({
     setIsComposerOpen(true);
   };
 
-  const useExamplePrompt = (examplePrompt: string) => {
-    setPrompt(examplePrompt);
-    setIsQueued(false);
-    setIsComposerOpen(true);
-    setComposerTextModeVersion((version) => version + 1);
-
-    requestAnimationFrame(() => {
-      composerRef.current
-        ?.querySelector<HTMLTextAreaElement>('textarea')
-        ?.focus();
-    });
-  };
-
   return (
     <div className="flex h-[calc(100dvh-3rem)] min-w-0">
       <section
         id="studio-feed"
-        className="relative flex h-[calc(100dvh-3rem)] min-w-0 flex-1 overflow-hidden bg-[#fff8fa] text-[#15202b]"
+        className="relative flex h-[calc(100dvh-3rem)] min-w-0 flex-1 overflow-hidden bg-[#08090a] text-neutral-100"
       >
         {/* The only scrollable region on this page: the thread column and its
             backdrop scroll here while the sidebar, preview panel and composer
-            stay fixed. Flat #fff8fa backdrop — same tone as the landing page. */}
+            stay fixed. A matte charcoal backdrop keeps attention on output. */}
         <div className="relative h-full min-w-0 flex-1 overflow-y-auto">
           {hasImageHistory || isImageGenerationActive ? (
             <div
@@ -1221,55 +1183,97 @@ export function ProactivVideoStudio({
                 ))}
               </div>
             </div>
-          ) : toolIntro && !isPreviewPanelOpen ? (
-            <div
-              className={`flex min-h-full w-full flex-col justify-center px-5 pt-6 pb-52 sm:px-8 sm:pt-10 sm:pb-60 ${
-                isSplitIntroWorkspace
-                  ? '2xl:ml-auto 2xl:max-w-3xl 2xl:pr-10'
-                  : 'mx-auto max-w-3xl'
-              }`}
-            >
-              <div className="rounded-[28px] border border-[#d6e0e7] bg-white/80 p-6 shadow-[0_14px_36px_rgba(21,32,43,0.06)] backdrop-blur-sm sm:p-8">
-                <p className="text-[11px] font-semibold tracking-[0.14em] text-[#8f2348] uppercase">
-                  {toolIntro.eyebrow}
-                </p>
-                <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-[#15202b] sm:text-4xl">
-                  {toolIntro.title}
-                </h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#627181] sm:text-base">
-                  {toolIntro.description}
-                </p>
-
-                <div
-                  className="mt-6 flex flex-wrap gap-2"
-                  aria-label={toolIntro.eyebrow}
-                >
-                  {toolIntro.examplePrompts.map((examplePrompt) => (
-                    <button
-                      key={examplePrompt}
-                      type="button"
-                      onClick={() => useExamplePrompt(examplePrompt)}
-                      className="rounded-full border border-[#d6e0e7] bg-[#fff8fa] px-3 py-2 text-left text-xs leading-5 font-medium text-[#4f5e6b] transition-colors hover:border-[#efb0c4] hover:bg-[#fff0f5] hover:text-[#8f2348] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
-                    >
-                      {examplePrompt}
-                    </button>
-                  ))}
-                </div>
-
-                <ProactivImagePromptGuideSummary {...toolIntro.guideSummary} />
-              </div>
-            </div>
           ) : null}
         </div>
 
         {isPreviewPanelOpen ? (
           <aside
-            aria-label={copy.imagePreviewTitleLabel}
-            className="absolute inset-y-0 right-0 z-20 flex w-full flex-col border-l border-[#d6e0e7] bg-white pb-[180px] shadow-[-18px_0_44px_rgba(21,32,43,0.14)] sm:pb-[204px] md:static md:w-[26rem] md:shrink-0 md:pb-0"
+            aria-label={
+              selectedVideoPreviewUrl
+                ? copy.generatedVideoLabel
+                : copy.imagePreviewTitleLabel
+            }
+            className="absolute inset-y-0 right-0 z-20 flex w-full flex-col border-l border-white/10 bg-[#101214] pb-[180px] shadow-[-18px_0_44px_rgba(0,0,0,0.32)] sm:pb-[204px] md:static md:w-[26rem] md:shrink-0 md:pb-0"
           >
-            {selectedImagePreview ? (
+            {selectedVideoPreviewUrl && motionTask ? (
               <>
-                <div className="relative min-h-0 flex-1 overflow-hidden bg-[#fff8fa]">
+                <div className="relative min-h-0 flex-1 overflow-hidden bg-[#08090a]">
+                  <div className="fixed top-2 right-2 z-30 flex items-center gap-1">
+                    <a
+                      href={`${H3_MAX_API}?download=1&taskId=${encodeURIComponent(motionTask.id)}&index=${selectedVideoPreviewIndex}`}
+                      className="inline-flex size-8 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                      aria-label={copy.downloadVideoLabel}
+                      title={copy.downloadVideoLabel}
+                    >
+                      <Download className="size-3.5" aria-hidden="true" />
+                    </a>
+                    <a
+                      href={selectedVideoPreviewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex size-8 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                      aria-label={copy.openGeneratedVideoLabel}
+                      title={copy.openGeneratedVideoLabel}
+                    >
+                      <ExternalLink className="size-3.5" aria-hidden="true" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setIsVideoPreviewVisible(false)}
+                      className="inline-flex size-8 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                      aria-label={copy.dismissGeneratedVideoLabel}
+                      title={copy.dismissGeneratedVideoLabel}
+                    >
+                      <X className="size-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                  <video
+                    key={selectedVideoPreviewUrl}
+                    src={selectedVideoPreviewUrl}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="size-full bg-black object-contain"
+                  />
+                </div>
+                <div className="shrink-0 border-t border-white/10 px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold tracking-[0.14em] text-neutral-500 uppercase">
+                        {copy.generatedVideoLabel}
+                      </p>
+                      <p className="mt-1 text-xs text-neutral-400">
+                        {motionTask.isArchived
+                          ? copy.resultSavedLabel
+                          : copy.resultExpirationLabel}
+                      </p>
+                    </div>
+                    {motionTask.resultUrls.length > 1 ? (
+                      <div className="flex shrink-0 gap-1.5">
+                        {motionTask.resultUrls.map((url, index) => (
+                          <button
+                            key={url}
+                            type="button"
+                            onClick={() => setSelectedVideoPreviewIndex(index)}
+                            aria-label={`${copy.openGeneratedVideoLabel} ${index + 1}`}
+                            aria-pressed={index === selectedVideoPreviewIndex}
+                            className={`grid size-7 place-items-center rounded-md border text-[10px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] ${
+                              index === selectedVideoPreviewIndex
+                                ? 'border-[#c92f68] bg-[#c92f68] text-white'
+                                : 'border-white/15 text-neutral-400 hover:border-white/35 hover:text-white'
+                            }`}
+                          >
+                            {index + 1}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </>
+            ) : selectedImagePreview ? (
+              <>
+                <div className="relative min-h-0 flex-1 overflow-hidden bg-[#08090a]">
                   <div className="fixed top-2 right-2 z-30 flex items-center gap-1">
                     <a
                       href={
@@ -1277,7 +1281,7 @@ export function ProactivVideoStudio({
                         selectedImagePreview.url
                       }
                       download
-                      className="inline-flex size-8 items-center justify-center text-[#627181] transition-colors hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                      className="inline-flex size-8 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
                       aria-label={copy.downloadImageLabel}
                       title={copy.downloadImageLabel}
                     >
@@ -1287,7 +1291,7 @@ export function ProactivVideoStudio({
                       href={selectedImagePreview.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex size-8 items-center justify-center text-[#627181] transition-colors hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                      className="inline-flex size-8 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
                       aria-label={copy.openGeneratedImageLabel}
                       title={copy.openGeneratedImageLabel}
                     >
@@ -1296,7 +1300,7 @@ export function ProactivVideoStudio({
                     <button
                       type="button"
                       onClick={() => setSelectedImagePreviewId(null)}
-                      className="inline-flex size-8 items-center justify-center text-[#627181] transition-colors hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                      className="inline-flex size-8 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
                       aria-label={copy.dismissGeneratedImageLabel}
                       title={copy.dismissGeneratedImageLabel}
                     >
@@ -1326,7 +1330,7 @@ export function ProactivVideoStudio({
                             title={displayPrompt(image.prompt)}
                             aria-label={copy.openGeneratedImageLabel}
                             aria-pressed={selected}
-                            className={`size-12 shrink-0 overflow-hidden rounded-lg border-2 bg-[#fff8fa] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] ${
+                            className={`size-12 shrink-0 overflow-hidden rounded-lg border-2 bg-[#08090a] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] ${
                               selected
                                 ? 'border-[#c92f68]'
                                 : 'border-transparent hover:border-[#efb0c4]'
@@ -1346,12 +1350,12 @@ export function ProactivVideoStudio({
                 </div>
               </>
             ) : (
-              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 bg-[#fff8fa] p-6 text-center">
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 bg-[#08090a] p-6 text-center">
                 <ImageIcon
-                  className="size-8 text-[#c4d3dc]"
+                  className="size-8 text-neutral-600"
                   aria-hidden="true"
                 />
-                <p className="max-w-56 text-xs leading-5 text-[#627181]">
+                <p className="max-w-56 text-xs leading-5 text-neutral-400">
                   {copy.imagePreviewEmptyLabel}
                 </p>
               </div>
@@ -1362,27 +1366,21 @@ export function ProactivVideoStudio({
         <div
           ref={composerRef}
           className={`fixed right-3 bottom-3 left-3 z-40 md:bottom-5 md:left-[calc(var(--app-sidebar-width,0rem)+1.25rem)] ${
-            isSplitIntroWorkspace
-              ? '2xl:right-[calc(50%-5rem)] 2xl:left-[calc(var(--app-sidebar-width,0rem)+5rem)]'
-              : isPreviewPanelOpen
-                ? 'md:right-[calc(26rem+1.25rem)]'
-                : 'md:right-5'
+            isPreviewPanelOpen ? 'md:right-[calc(26rem+1.25rem)]' : 'md:right-5'
           }`}
         >
           {/* The composer receives the space released when the sidebar collapses. */}
-          <div
-            className={`w-full ${
-              isSplitIntroWorkspace
-                ? '2xl:mx-0 2xl:max-w-none'
-                : 'mx-auto max-w-[min(1240px,calc(1024px+14rem-var(--app-sidebar-width,0rem)))]'
-            }`}
-          >
-            <div className="relative min-w-0">
+          <div className="mx-auto w-full max-w-[min(1240px,calc(1024px+14rem-var(--app-sidebar-width,0rem)))]">
+            <div className="relative min-w-0 overflow-hidden rounded-[28px] border border-[#e6a34c]/55 bg-[#141619]/95 p-1.5 shadow-[0_24px_72px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.1)] ring-1 ring-white/[0.08] backdrop-blur-xl sm:p-2">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute top-0 left-[12%] h-px w-[76%] bg-[#e6a34c]/75"
+              />
               <div className="relative flex items-center justify-between gap-3 px-3 pt-1.5 pb-2 sm:px-4 sm:pt-2">
                 <button
                   type="button"
                   onClick={() => setIsComposerOpen((open) => !open)}
-                  className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-[#627181] transition hover:bg-[#fff1f5] hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] md:hidden"
+                  className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-neutral-400 transition hover:bg-white/[0.08] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] md:hidden"
                   aria-expanded={isComposerOpen}
                   aria-label={copy.collapseComposerLabel}
                 >
@@ -1396,7 +1394,8 @@ export function ProactivVideoStudio({
               </div>
 
               <div className={isComposerOpen ? 'block' : 'hidden md:block'}>
-                {motionTask ? (
+                {motionTask &&
+                ['failed', 'canceled'].includes(motionTask.status) ? (
                   <MotionTaskCard
                     task={motionTask}
                     copy={copy}
@@ -1408,9 +1407,9 @@ export function ProactivVideoStudio({
                   />
                 ) : null}
                 {showRetry && retryValues ? (
-                  <div className="mx-1 mt-1 mb-2 rounded-[22px] border border-[#d6e0e7] bg-[#f8fafc] p-2 sm:p-3">
+                  <div className="mx-1 mt-1 mb-2 rounded-[22px] border border-white/10 bg-[#161719] p-2 sm:p-3">
                     <button
-                      className="flex min-h-10 w-full items-center justify-center rounded-xl bg-[#fff0f5] px-3 text-sm font-semibold text-[#8f2348] transition-colors hover:bg-[#ffe1ea] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] disabled:cursor-wait disabled:opacity-60"
+                      className="flex min-h-10 w-full items-center justify-center rounded-xl bg-white px-3 text-sm font-semibold text-[#0e1011] transition-colors hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] disabled:cursor-wait disabled:opacity-60"
                       disabled={generationMutation.isPending}
                       onClick={retryGeneration}
                       type="button"
@@ -1420,7 +1419,8 @@ export function ProactivVideoStudio({
                   </div>
                 ) : null}
                 <ProactivHeroComposer
-                  allowVideoMode={videoModelEnabled}
+                  appearance="console"
+                  allowVideoMode
                   compactGenerateAction
                   forceTextModeVersion={composerTextModeVersion}
                   isGenerating={
@@ -1525,84 +1525,6 @@ function MotionTaskCard({
           style={{ width: `${Math.max(4, task.progress)}%` }}
         />
       </div>
-
-      {task.resultUrls.length ? (
-        <div
-          className={`mt-3 grid gap-3 ${
-            task.resultUrls.length > 1 ? 'sm:grid-cols-2' : ''
-          }`}
-        >
-          {task.resultUrls.map((resultUrl, index) => (
-            <GeneratedVideoPlayer
-              key={resultUrl}
-              downloadLabel={copy.downloadVideoLabel}
-              downloadUrl={`/api/evolink/motion-control/download?taskId=${encodeURIComponent(task.id)}&index=${index}`}
-              expirationLabel={copy.resultExpirationLabel}
-              isArchived={task.isArchived}
-              resultUrl={resultUrl}
-              openLabel={copy.openGeneratedVideoLabel}
-              savedLabel={copy.resultSavedLabel}
-            />
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function GeneratedVideoPlayer({
-  downloadLabel,
-  downloadUrl,
-  expirationLabel,
-  isArchived,
-  resultUrl,
-  openLabel,
-  savedLabel,
-}: {
-  downloadLabel: string;
-  downloadUrl: string;
-  expirationLabel: string;
-  isArchived: boolean;
-  resultUrl: string;
-  openLabel: string;
-  savedLabel: string;
-}) {
-  const [unplayable, setUnplayable] = useState(false);
-
-  return (
-    <div className="overflow-hidden rounded-xl border border-[#d6e0e7] bg-white">
-      {!unplayable ? (
-        <video
-          key={resultUrl}
-          src={resultUrl}
-          controls
-          playsInline
-          preload="metadata"
-          onError={() => setUnplayable(true)}
-          className="max-h-[320px] w-full bg-black object-contain"
-        />
-      ) : null}
-      <div className="flex items-center justify-between gap-2 border-t border-[#d6e0e7] px-2 py-2">
-        <a
-          href={downloadUrl}
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[#c92f68] px-3 text-xs font-bold text-white transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
-        >
-          <Download className="size-3.5" aria-hidden="true" />
-          {downloadLabel}
-        </a>
-        <a
-          href={resultUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-[#627181] transition hover:bg-[#fff1f5] hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
-        >
-          <ExternalLink className="size-3.5" aria-hidden="true" />
-          {openLabel}
-        </a>
-      </div>
-      <p className="px-3 pb-3 text-[11px] leading-4 text-[#627181]">
-        {isArchived ? savedLabel : expirationLabel}
-      </p>
     </div>
   );
 }

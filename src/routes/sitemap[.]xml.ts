@@ -5,11 +5,9 @@ import { baseLocale, locales, localizeUrl } from '@/paraglide/runtime.js';
 
 const STATIC_PATHS = [
   '',
-  '/text-to-image',
-  '/ai-image-prompt-guide',
-  '/pricing',
-  '/privacy-policy',
-  '/terms-of-service',
+  '/cost-calculator',
+  '/prompt-generator',
+  '/vs/veo-3-1',
 ];
 
 type Entry = {

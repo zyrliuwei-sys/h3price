@@ -2,23 +2,15 @@
 
 import { useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import {
-  Check,
-  Folder,
-  Folders,
-  Headphones,
-  Mail,
-  Puzzle,
-  Sparkles,
-  Terminal,
-  Zap,
-} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useSession } from '@/core/auth/client';
 import { useRouter } from '@/core/i18n/navigation';
 import { apiPost } from '@/lib/api-client';
-import { grokPricingPlans } from '@/lib/grok-pricing-plans';
+import {
+  h3Max480SecondsEquivalent,
+  h3MaxRetailPlans,
+} from '@/lib/h3-max-retail-plans';
 import { currentPathWithQuery } from '@/lib/redirect';
 import { m } from '@/paraglide/messages.js';
 import { usePublicConfig } from '@/hooks/use-public-config';
@@ -45,7 +37,7 @@ type PricingPeriod = 'one-time' | 'monthly' | 'yearly';
 export function Pricing({
   title,
   description,
-  periods = ['one-time', 'monthly', 'yearly'],
+  periods = ['monthly', 'yearly', 'one-time'],
 }: {
   title?: string;
   description?: string;
@@ -66,36 +58,31 @@ export function Pricing({
     [configs]
   );
 
-  const creditFeature = (credits: number) => ({
-    icon: Sparkles,
-    label: m['landing.pricing.feature_credits']({
-      credits: credits.toLocaleString('en-US'),
-    }),
-  });
+  const includedOutput = (secondsAt768p: number) =>
+    m['pricing.h3.included_output']({
+      seconds480:
+        h3Max480SecondsEquivalent(secondsAt768p).toLocaleString('en-US'),
+      seconds768: secondsAt768p.toLocaleString('en-US'),
+    });
   const billedAnnually = (price: string) =>
     m['landing.pricing.billed_annually']({ price });
-  const essentialsFeatures = (credits: number) => [
-    { icon: Folder, label: m['landing.pricing.feature_1_project']() },
-    creditFeature(credits),
-    { icon: Mail, label: m['landing.pricing.feature_email_support']() },
+  const essentialsFeatures = () => [
+    m['pricing.h3.feature_text_to_video'](),
+    m['pricing.h3.feature_image_to_video'](),
+    m['pricing.h3.feature_native_audio'](),
+    m['pricing.h3.feature_short_clips'](),
   ];
-  const studioFeatures = (credits: number) => [
-    { icon: Folders, label: m['landing.pricing.feature_unlimited_projects']() },
-    creditFeature(credits),
-    { icon: Zap, label: m['landing.pricing.feature_priority_support']() },
-    { icon: Terminal, label: m['landing.pricing.feature_api_access']() },
+  const studioFeatures = () => [
+    m['pricing.h3.feature_everything_start'](),
+    m['pricing.h3.feature_long_clips'](),
+    m['pricing.h3.feature_first_last_frame'](),
+    m['pricing.h3.feature_768p'](),
   ];
-  const productionFeatures = (credits: number) => [
-    {
-      icon: Check,
-      label: m['landing.pricing.feature_everything_studio'](),
-    },
-    creditFeature(credits),
-    {
-      icon: Headphones,
-      label: m['landing.pricing.feature_dedicated_support'](),
-    },
-    { icon: Puzzle, label: m['landing.pricing.feature_custom_integrations']() },
+  const productionFeatures = () => [
+    m['pricing.h3.feature_everything_creator'](),
+    m['pricing.h3.feature_story_continuity'](),
+    m['pricing.h3.feature_all_aspects'](),
+    m['pricing.h3.feature_high_volume'](),
   ];
 
   const groups: PricingGroup[] = [
@@ -107,46 +94,51 @@ export function Pricing({
           id: 'essentials-monthly',
           name: m['landing.pricing.essentials'](),
           description: m['landing.pricing.essentials_desc'](),
-          price: '$19',
+          price: '$28',
           interval: 'mo',
-          features: essentialsFeatures(
-            grokPricingPlans.essentials.monthly.credits
+          includedValue: includedOutput(
+            h3MaxRetailPlans.essentials.monthly.credits
           ),
-          productId: 'starter_monthly',
-          priceInCents: grokPricingPlans.essentials.monthly.priceInCents,
+          features: essentialsFeatures(),
+          productId: h3MaxRetailPlans.essentials.monthly.productId,
+          priceInCents: h3MaxRetailPlans.essentials.monthly.priceInCents,
           currency: 'usd',
-          credits: grokPricingPlans.essentials.monthly.credits,
-          plan: { name: 'Essentials', interval: 'month', intervalCount: 1 },
+          credits: h3MaxRetailPlans.essentials.monthly.credits,
+          plan: { name: 'Start', interval: 'month', intervalCount: 1 },
         },
         {
           id: 'studio-monthly',
           name: m['landing.pricing.studio'](),
           description: m['landing.pricing.studio_desc'](),
-          price: '$39',
+          price: '$84',
           interval: 'mo',
           featured: true,
           badge: m['landing.pricing.popular'](),
-          features: studioFeatures(grokPricingPlans.studio.monthly.credits),
-          productId: 'pro_monthly',
-          priceInCents: grokPricingPlans.studio.monthly.priceInCents,
+          includedValue: includedOutput(
+            h3MaxRetailPlans.studio.monthly.credits
+          ),
+          features: studioFeatures(),
+          productId: h3MaxRetailPlans.studio.monthly.productId,
+          priceInCents: h3MaxRetailPlans.studio.monthly.priceInCents,
           currency: 'usd',
-          credits: grokPricingPlans.studio.monthly.credits,
-          plan: { name: 'Studio', interval: 'month', intervalCount: 1 },
+          credits: h3MaxRetailPlans.studio.monthly.credits,
+          plan: { name: 'Creator', interval: 'month', intervalCount: 1 },
         },
         {
           id: 'production-monthly',
           name: m['landing.pricing.production'](),
           description: m['landing.pricing.production_desc'](),
-          price: '$59',
+          price: '$224',
           interval: 'mo',
-          features: productionFeatures(
-            grokPricingPlans.production.monthly.credits
+          includedValue: includedOutput(
+            h3MaxRetailPlans.production.monthly.credits
           ),
-          productId: 'enterprise_monthly',
-          priceInCents: grokPricingPlans.production.monthly.priceInCents,
+          features: productionFeatures(),
+          productId: h3MaxRetailPlans.production.monthly.productId,
+          priceInCents: h3MaxRetailPlans.production.monthly.priceInCents,
           currency: 'usd',
-          credits: grokPricingPlans.production.monthly.credits,
-          plan: { name: 'Production', interval: 'month', intervalCount: 1 },
+          credits: h3MaxRetailPlans.production.monthly.credits,
+          plan: { name: 'Studio', interval: 'month', intervalCount: 1 },
         },
       ],
     },
@@ -158,55 +150,55 @@ export function Pricing({
           id: 'essentials-yearly',
           name: m['landing.pricing.essentials'](),
           description: m['landing.pricing.essentials_desc'](),
-          price: '$16',
-          originalPrice: '$19/mo',
+          price: '$28',
           interval: 'mo',
-          billingNote: billedAnnually('$190'),
-          checkoutPrice: '$190',
-          features: essentialsFeatures(
-            grokPricingPlans.essentials.yearly.credits
+          billingNote: billedAnnually('$336'),
+          checkoutPrice: '$336',
+          includedValue: includedOutput(
+            h3MaxRetailPlans.essentials.yearly.credits
           ),
-          productId: 'starter_yearly',
-          priceInCents: grokPricingPlans.essentials.yearly.priceInCents,
+          features: essentialsFeatures(),
+          productId: h3MaxRetailPlans.essentials.yearly.productId,
+          priceInCents: h3MaxRetailPlans.essentials.yearly.priceInCents,
           currency: 'usd',
-          credits: grokPricingPlans.essentials.yearly.credits,
-          plan: { name: 'Essentials', interval: 'year', intervalCount: 1 },
+          credits: h3MaxRetailPlans.essentials.yearly.credits,
+          plan: { name: 'Start', interval: 'year', intervalCount: 1 },
         },
         {
           id: 'studio-yearly',
           name: m['landing.pricing.studio'](),
           description: m['landing.pricing.studio_desc'](),
-          price: '$33',
-          originalPrice: '$39/mo',
+          price: '$84',
           interval: 'mo',
-          billingNote: billedAnnually('$390'),
-          checkoutPrice: '$390',
+          billingNote: billedAnnually('$1,008'),
+          checkoutPrice: '$1,008',
           featured: true,
           badge: m['landing.pricing.popular'](),
-          features: studioFeatures(grokPricingPlans.studio.yearly.credits),
-          productId: 'pro_yearly',
-          priceInCents: grokPricingPlans.studio.yearly.priceInCents,
+          includedValue: includedOutput(h3MaxRetailPlans.studio.yearly.credits),
+          features: studioFeatures(),
+          productId: h3MaxRetailPlans.studio.yearly.productId,
+          priceInCents: h3MaxRetailPlans.studio.yearly.priceInCents,
           currency: 'usd',
-          credits: grokPricingPlans.studio.yearly.credits,
-          plan: { name: 'Studio', interval: 'year', intervalCount: 1 },
+          credits: h3MaxRetailPlans.studio.yearly.credits,
+          plan: { name: 'Creator', interval: 'year', intervalCount: 1 },
         },
         {
           id: 'production-yearly',
           name: m['landing.pricing.production'](),
           description: m['landing.pricing.production_desc'](),
-          price: '$49',
-          originalPrice: '$59/mo',
+          price: '$224',
           interval: 'mo',
-          billingNote: billedAnnually('$590'),
-          checkoutPrice: '$590',
-          features: productionFeatures(
-            grokPricingPlans.production.yearly.credits
+          billingNote: billedAnnually('$2,688'),
+          checkoutPrice: '$2,688',
+          includedValue: includedOutput(
+            h3MaxRetailPlans.production.yearly.credits
           ),
-          productId: 'enterprise_yearly',
-          priceInCents: grokPricingPlans.production.yearly.priceInCents,
+          features: productionFeatures(),
+          productId: h3MaxRetailPlans.production.yearly.productId,
+          priceInCents: h3MaxRetailPlans.production.yearly.priceInCents,
           currency: 'usd',
-          credits: grokPricingPlans.production.yearly.credits,
-          plan: { name: 'Production', interval: 'year', intervalCount: 1 },
+          credits: h3MaxRetailPlans.production.yearly.credits,
+          plan: { name: 'Studio', interval: 'year', intervalCount: 1 },
         },
       ],
     },
@@ -218,48 +210,53 @@ export function Pricing({
           id: 'essentials-one-time',
           name: m['landing.pricing.essentials'](),
           description: m['landing.pricing.essentials_desc'](),
-          price: '$10',
-          features: essentialsFeatures(
-            grokPricingPlans.essentials.oneTime.credits
+          price: '$19.60',
+          includedValue: includedOutput(
+            h3MaxRetailPlans.essentials.oneTime.credits
           ),
-          productId: 'starter_lifetime',
-          priceInCents: grokPricingPlans.essentials.oneTime.priceInCents,
+          features: essentialsFeatures(),
+          productId: h3MaxRetailPlans.essentials.oneTime.productId,
+          priceInCents: h3MaxRetailPlans.essentials.oneTime.priceInCents,
           currency: 'usd',
-          credits: grokPricingPlans.essentials.oneTime.credits,
+          credits: h3MaxRetailPlans.essentials.oneTime.credits,
           buttonText: m['landing.pricing.buy_credits'](),
         },
         {
           id: 'studio-one-time',
           name: m['landing.pricing.studio'](),
           description: m['landing.pricing.studio_desc'](),
-          price: '$30',
-          features: studioFeatures(grokPricingPlans.studio.oneTime.credits),
+          price: '$50.40',
+          includedValue: includedOutput(
+            h3MaxRetailPlans.studio.oneTime.credits
+          ),
+          features: studioFeatures(),
           featured: true,
           badge: m['landing.pricing.best_value'](),
-          productId: 'pro_lifetime',
-          priceInCents: grokPricingPlans.studio.oneTime.priceInCents,
+          productId: h3MaxRetailPlans.studio.oneTime.productId,
+          priceInCents: h3MaxRetailPlans.studio.oneTime.priceInCents,
           currency: 'usd',
-          credits: grokPricingPlans.studio.oneTime.credits,
+          credits: h3MaxRetailPlans.studio.oneTime.credits,
           buttonText: m['landing.pricing.buy_credits'](),
         },
         {
           id: 'production-one-time',
           name: m['landing.pricing.production'](),
           description: m['landing.pricing.production_desc'](),
-          price: '$59',
-          features: productionFeatures(
-            grokPricingPlans.production.oneTime.credits
+          price: '$126',
+          includedValue: includedOutput(
+            h3MaxRetailPlans.production.oneTime.credits
           ),
-          productId: 'enterprise_lifetime',
-          priceInCents: grokPricingPlans.production.oneTime.priceInCents,
+          features: productionFeatures(),
+          productId: h3MaxRetailPlans.production.oneTime.productId,
+          priceInCents: h3MaxRetailPlans.production.oneTime.priceInCents,
           currency: 'usd',
-          credits: grokPricingPlans.production.oneTime.credits,
+          credits: h3MaxRetailPlans.production.oneTime.credits,
           buttonText: m['landing.pricing.buy_credits'](),
         },
       ],
     },
   ];
-  const visibleGroups = (['one-time', 'monthly', 'yearly'] as const).flatMap(
+  const visibleGroups = (['monthly', 'yearly', 'one-time'] as const).flatMap(
     (period) =>
       periods.includes(period)
         ? groups.filter((group) => group.key === period)
@@ -337,14 +334,18 @@ export function Pricing({
   return (
     <section
       id="pricing"
-      className="border-border border-t px-4 py-24 sm:py-32"
+      className="relative overflow-hidden border-y border-white/10 bg-[#08090a] px-4 py-24 text-white sm:py-32"
     >
-      <div className="mx-auto max-w-5xl">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[32rem] bg-[radial-gradient(ellipse_at_top,rgba(57,195,239,0.14),transparent_66%)]"
+      />
+      <div className="relative mx-auto max-w-5xl">
         <div className="mb-20 text-center">
-          <h2 className="font-serif text-4xl font-normal tracking-tight sm:text-5xl">
+          <h2 className="font-serif text-4xl font-normal tracking-tight text-white sm:text-5xl">
             {title ?? m['landing.pricing.title']()}
           </h2>
-          <p className="text-muted-foreground mt-5">
+          <p className="mx-auto mt-5 max-w-2xl text-neutral-400">
             {description ?? m['landing.pricing.description']()}
           </p>
         </div>

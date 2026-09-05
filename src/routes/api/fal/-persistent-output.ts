@@ -12,6 +12,15 @@ function hasPublicHttpsDomain(value: unknown): value is string {
   }
 }
 
+async function isPublicOutputReachable(url: string): Promise<boolean> {
+  try {
+    const response = await fetch(url, { method: 'HEAD' });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Saves completed provider outputs to the configured public R2 bucket before
  * their upstream URLs expire. Without a public R2 domain we retain Fal's URL,
@@ -39,7 +48,13 @@ export async function getPersistentOutputSaver(): Promise<
           throw new Error(saved.error || 'Unable to permanently save output');
         }
 
-        return { ...file, url: saved.url };
+        // A configured domain can be syntactically valid but not yet routed to
+        // R2 (for example, a Cloudflare 522). Keep Fal's playable source URL
+        // in that case rather than replacing it with a broken public link.
+        const publicUrl = saved.url.trim();
+        if (!(await isPublicOutputReachable(publicUrl))) return file;
+
+        return { ...file, url: publicUrl };
       })
     );
 }

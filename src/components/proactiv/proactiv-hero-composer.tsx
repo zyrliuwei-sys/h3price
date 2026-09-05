@@ -50,10 +50,11 @@ export interface ProactivGenerationReference {
 export interface ProactivGenerationValues {
   aspectRatio: string;
   batchSize: number;
+  duration: 5 | 10;
   mode: 'edit' | 'text' | 'video';
   prompt: string;
   references: ProactivGenerationReference[];
-  resolution: '1K' | '2K';
+  resolution: '480P' | '768P';
   style: string;
 }
 
@@ -63,6 +64,7 @@ export interface ProactivHeroComposerProps {
   allowTextToImageMode?: boolean;
   allowVideoMode?: boolean;
   compactAction?: boolean;
+  compactContentInset?: boolean;
   compactGenerateAction?: boolean;
   forceTextModeVersion?: number;
   isGenerating?: boolean;
@@ -113,11 +115,12 @@ const aspectRatioOptions = [
     triggerPreviewClassName: 'size-3.5',
   },
 ] as const;
-const resolutionOptions = ['1K', '2K'] as const;
+const resolutionOptions = ['480P', '768P'] as const;
+const durationOptions = [5, 10] as const;
 const defaultAspectRatio = '9:16';
 const defaultMaximumImageReferenceCount = 3;
-const minimumMotionVideoDuration = 3;
-const maximumMotionVideoDuration = 10;
+const minimumMotionVideoDuration = 2;
+const maximumMotionVideoDuration = 15;
 type ReferenceSlot = 'avatar' | 'product' | null;
 type MotionVideoDurationState = 'idle' | 'loading' | 'ready' | 'unavailable';
 type ReferenceAttachment = {
@@ -141,6 +144,7 @@ export function ProactivHeroComposer({
   allowTextToImageMode = true,
   allowVideoMode = true,
   compactAction = false,
+  compactContentInset = false,
   compactGenerateAction = false,
   forceTextModeVersion,
   isGenerating = false,
@@ -161,7 +165,8 @@ export function ProactivHeroComposer({
   const [uncontrolledPrompt, setUncontrolledPrompt] = useState('');
   const style = 'Closeup';
   const [aspectRatio, setAspectRatio] = useState(defaultAspectRatio);
-  const [resolution, setResolution] = useState<'1K' | '2K'>('1K');
+  const [resolution, setResolution] = useState<'480P' | '768P'>('768P');
+  const [duration, setDuration] = useState<(typeof durationOptions)[number]>(5);
   const batchSize = 1;
   const [references, setReferences] = useState<ReferenceAttachment[]>([]);
   const [referenceSlot, setReferenceSlot] = useState<ReferenceSlot>(null);
@@ -186,9 +191,11 @@ export function ProactivHeroComposer({
   const hasReachedImageReferenceLimit =
     mode === 'edit' && imageReferences.length >= maxImageReferences;
   const hasRequiredReferences =
-    mode === 'text' || mode === 'edit'
+    mode === 'text'
       ? prompt.trim().length > 0
-      : Boolean(avatarImage && motionVideo);
+      : mode === 'edit'
+        ? prompt.trim().length > 0 && imageReferences.length > 0
+        : prompt.trim().length > 0 && references.length > 0;
   const isReady = requireReferences
     ? hasRequiredReferences
     : prompt.trim().length > 0;
@@ -310,8 +317,7 @@ export function ProactivHeroComposer({
   };
 
   // A previously sent prompt can be returned to this composer for another
-  // generation. That must use text mode: edit mode requires a reference image
-  // and would otherwise leave the generate action disabled.
+  // generation. Text-to-video is the only H3 Max mode that needs no upload.
   useEffect(() => {
     if (forceTextModeVersion === undefined || !allowTextToImageMode) return;
 
@@ -362,8 +368,8 @@ export function ProactivHeroComposer({
   const addUploadedReferences = (files: FileList | File[] | null) => {
     if (!files?.length) return;
 
-    // Adding an image from the text-to-image composer turns the request into
-    // an image-edit task, so the attachment is used rather than discarded.
+    // Adding an image from text-to-video turns the request into image-to-video
+    // so the attachment is used rather than discarded.
     const uploadMode = mode === 'text' ? 'edit' : mode;
     const expectedType =
       uploadMode === 'edit' || referenceSlot === 'avatar'
@@ -471,6 +477,7 @@ export function ProactivHeroComposer({
       style,
       aspectRatio,
       batchSize,
+      duration,
       resolution,
     });
 
@@ -527,7 +534,7 @@ export function ProactivHeroComposer({
               <div
                 className={`flex min-w-0 flex-1 flex-col ${
                   compactAction ? 'min-h-32' : 'min-h-20'
-                }`}
+                } ${compactAction && compactContentInset ? 'sm:ml-6' : ''}`}
               >
                 <label className="sr-only" htmlFor="hero-marketing-prompt">
                   {labels.placeholder}
@@ -641,7 +648,7 @@ export function ProactivHeroComposer({
 
                 <div
                   className={`flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-                    compactAction ? 'mt-auto translate-y-5' : 'mt-2.5'
+                    compactAction ? 'mt-auto translate-y-7' : 'mt-2.5'
                   }`}
                 >
                   {hasMultipleModels ? (
@@ -667,6 +674,12 @@ export function ProactivHeroComposer({
                       aspectRatioLabel={labels.aspectRatio}
                       onAspectRatioChange={(nextRatio) => {
                         setAspectRatio(nextRatio);
+                        setHasRequestedGeneration(false);
+                      }}
+                      duration={duration}
+                      durationLabel={labels.duration}
+                      onDurationChange={(nextDuration) => {
+                        setDuration(nextDuration);
                         setHasRequestedGeneration(false);
                       }}
                       onResolutionChange={(nextResolution) => {
@@ -711,7 +724,7 @@ export function ProactivHeroComposer({
                       ? 'mr-0 ml-auto size-14 self-end'
                       : 'mr-0 ml-auto size-14 self-end'
                     : 'h-14 sm:w-[232px]'
-                } ${compactAction ? 'translate-y-5' : ''}`}
+                } ${compactAction ? 'translate-y-7' : ''}`}
               >
                 <button
                   type="button"
@@ -894,7 +907,10 @@ function ImageSettingsPicker({
   appearance = 'light',
   aspectRatio,
   aspectRatioLabel,
+  duration,
+  durationLabel,
   onAspectRatioChange,
+  onDurationChange,
   onResolutionChange,
   resolution,
   resolutionLabel,
@@ -902,7 +918,10 @@ function ImageSettingsPicker({
   appearance?: 'light' | 'console';
   aspectRatio: string;
   aspectRatioLabel: string;
+  duration: (typeof durationOptions)[number];
+  durationLabel: string;
   onAspectRatioChange: (value: string) => void;
+  onDurationChange: (value: (typeof durationOptions)[number]) => void;
   onResolutionChange: (value: (typeof resolutionOptions)[number]) => void;
   resolution: (typeof resolutionOptions)[number];
   resolutionLabel: string;
@@ -915,10 +934,10 @@ function ImageSettingsPicker({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label={`${aspectRatioLabel}: ${aspectRatio}. ${resolutionLabel}: ${resolution}`}
-        className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 ${
+        aria-label={`${aspectRatioLabel}: ${aspectRatio}. ${resolutionLabel}: ${resolution}. ${durationLabel}: ${duration}s`}
+        className={`inline-flex h-9 shrink-0 items-center gap-2 rounded-xl border px-2.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 ${
           isConsoleAppearance
-            ? 'border-white/15 bg-white/[0.06] text-neutral-300 hover:border-white/25 hover:bg-white/10 hover:text-white focus-visible:outline-cyan-200'
+            ? 'border-white/15 bg-white/[0.07] text-neutral-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-white/25 hover:bg-white/10 hover:text-white focus-visible:outline-cyan-200'
             : 'border-[#d7dde2] bg-white text-[#4b5b68] shadow-sm hover:bg-[#f3f5f6] hover:text-[#15202b] focus-visible:outline-[#627181]'
         }`}
       >
@@ -934,6 +953,13 @@ function ImageSettingsPicker({
           aria-hidden="true"
         />
         <span>{resolution}</span>
+        <span
+          className={`h-3.5 w-px ${
+            isConsoleAppearance ? 'bg-white/20' : 'bg-[#d7dde2]'
+          }`}
+          aria-hidden="true"
+        />
+        <span>{duration}s</span>
         <ChevronDown
           className={`size-3.5 ${
             isConsoleAppearance ? 'text-neutral-500' : 'text-[#627181]'
@@ -946,67 +972,15 @@ function ImageSettingsPicker({
         side="top"
         align="start"
         sideOffset={10}
-        className={`w-[min(460px,calc(100vw-2rem))] min-w-[min(320px,calc(100vw-2rem))] rounded-[22px] border p-3 shadow-[0_18px_48px_rgba(0,0,0,0.32)] ${
+        className={`w-[min(460px,calc(100vw-1.5rem))] min-w-[min(280px,calc(100vw-1.5rem))] overflow-hidden rounded-[22px] border p-2.5 shadow-[0_24px_60px_rgba(0,0,0,0.44)] ${
           isConsoleAppearance
-            ? 'border-white/15 bg-[#17191b] text-neutral-100'
+            ? 'border-white/15 bg-[#18191c] text-neutral-100'
             : 'border-[#d7dde2] bg-white text-[#15202b] shadow-[0_18px_48px_rgba(21,32,43,0.18)]'
         }`}
       >
-        <p
-          className={`px-1 pt-0.5 pb-2.5 text-[10px] font-semibold tracking-[0.16em] uppercase ${
-            isConsoleAppearance ? 'text-neutral-500' : 'text-[#627181]'
-          }`}
-        >
-          {aspectRatioLabel}
-        </p>
-        <DropdownMenuRadioGroup
-          value={aspectRatio}
-          onValueChange={(nextValue) => onAspectRatioChange(String(nextValue))}
-          className="grid grid-cols-3 gap-1 sm:grid-cols-4"
-        >
-          {aspectRatioOptions.map((option) => {
-            const selected = aspectRatio === option.value;
-            return (
-              <DropdownMenuRadioItem
-                key={option.value}
-                value={option.value}
-                label={option.value}
-                closeOnClick={false}
-                className={`group/ratio flex h-12 flex-col justify-center gap-1 rounded-xl border border-transparent px-2 py-1.5 text-xs font-medium transition-[background-color,border-color,color] duration-150 [&_[data-slot=dropdown-menu-radio-item-indicator]]:hidden ${
-                  isConsoleAppearance
-                    ? 'text-neutral-400 hover:bg-white/[0.06] hover:text-white focus:bg-white/[0.08] focus:text-white data-checked:bg-white/[0.08] data-checked:text-white'
-                    : 'text-[#627181] hover:bg-[#f3f5f6] hover:text-[#15202b] focus:bg-[#e9eef1] focus:text-[#15202b] data-checked:bg-[#e9eef1] data-checked:text-[#15202b]'
-                }`}
-              >
-                <span
-                  className="grid size-7 shrink-0 place-items-center"
-                  aria-hidden="true"
-                >
-                  <span
-                    className={`block rounded-[2px] border-[1.5px] transition-colors ${option.previewClassName} ${
-                      selected
-                        ? isConsoleAppearance
-                          ? 'border-cyan-100 text-cyan-100'
-                          : 'border-[#15202b] text-[#15202b]'
-                        : isConsoleAppearance
-                          ? 'border-neutral-600 text-neutral-600 group-hover/ratio:border-neutral-300 group-hover/ratio:text-neutral-300'
-                          : 'border-[#8ba0ac] text-[#8ba0ac] group-hover/ratio:border-[#4b5b68] group-hover/ratio:text-[#4b5b68]'
-                    }`}
-                  />
-                </span>
-                <span className="tabular-nums">{option.value}</span>
-              </DropdownMenuRadioItem>
-            );
-          })}
-        </DropdownMenuRadioGroup>
-
-        <div
-          className={`mt-3 border-t pt-3 ${
-            isConsoleAppearance ? 'border-white/10' : 'border-[#e4e8eb]'
-          }`}
-        >
+        <div className="relative">
           <p
-            className={`px-1 pb-2 text-[10px] font-semibold tracking-[0.16em] uppercase ${
+            className={`px-1 pt-0.5 pb-2.5 text-[10px] font-semibold tracking-[0.18em] uppercase ${
               isConsoleAppearance ? 'text-neutral-500' : 'text-[#627181]'
             }`}
           >
@@ -1019,7 +993,7 @@ function ImageSettingsPicker({
                 nextValue as (typeof resolutionOptions)[number]
               )
             }
-            className={`flex rounded-2xl p-1 ${
+            className={`flex rounded-xl p-1 ${
               isConsoleAppearance ? 'bg-white/[0.06]' : 'bg-[#eff1f3]'
             }`}
           >
@@ -1029,15 +1003,116 @@ function ImageSettingsPicker({
                 value={option}
                 label={option}
                 closeOnClick={false}
-                className={`flex h-10 flex-1 justify-center rounded-xl px-2 text-xs font-semibold transition-[background-color,color,box-shadow] [&_[data-slot=dropdown-menu-radio-item-indicator]]:hidden ${
+                className={`flex h-11 flex-1 justify-center rounded-[14px] px-2 text-sm font-medium tracking-[-0.02em] transition-[background-color,color,box-shadow] [&_[data-slot=dropdown-menu-radio-item-indicator]]:hidden ${
                   isConsoleAppearance
-                    ? 'text-neutral-400 hover:text-white focus:bg-white/[0.12] focus:text-white data-checked:bg-white data-checked:text-[#0e1011] data-checked:shadow-[0_3px_8px_rgba(0,0,0,0.2)]'
+                    ? 'text-neutral-400 hover:text-white focus:bg-white/[0.1] focus:text-white data-checked:bg-[#333438] data-checked:text-white data-checked:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_4px_12px_rgba(0,0,0,0.16)]'
                     : 'text-[#627181] hover:text-[#15202b] focus:bg-white focus:text-[#15202b] data-checked:bg-white data-checked:text-[#15202b] data-checked:shadow-[0_3px_8px_rgba(21,32,43,0.12)]'
                 }`}
               >
                 {option}
               </DropdownMenuRadioItem>
             ))}
+          </DropdownMenuRadioGroup>
+        </div>
+
+        <div
+          className={`my-3 border-t ${
+            isConsoleAppearance ? 'border-white/[0.09]' : 'border-[#e4e8eb]'
+          }`}
+        />
+
+        <div>
+          <p
+            className={`px-1 pb-2.5 text-[10px] font-semibold tracking-[0.18em] uppercase ${
+              isConsoleAppearance ? 'text-neutral-500' : 'text-[#627181]'
+            }`}
+          >
+            {durationLabel}
+          </p>
+          <DropdownMenuRadioGroup
+            value={String(duration)}
+            onValueChange={(nextValue) =>
+              onDurationChange(
+                Number(nextValue) as (typeof durationOptions)[number]
+              )
+            }
+            className={`flex rounded-xl p-1 ${
+              isConsoleAppearance ? 'bg-white/[0.06]' : 'bg-[#eff1f3]'
+            }`}
+          >
+            {durationOptions.map((option) => (
+              <DropdownMenuRadioItem
+                key={option}
+                value={String(option)}
+                label={`${option}s`}
+                closeOnClick={false}
+                className={`flex h-10 flex-1 justify-center rounded-[12px] px-2 text-sm font-medium tracking-[-0.02em] transition-[background-color,color,box-shadow] [&_[data-slot=dropdown-menu-radio-item-indicator]]:hidden ${
+                  isConsoleAppearance
+                    ? 'text-neutral-400 hover:text-white focus:bg-white/[0.1] focus:text-white data-checked:bg-[#333438] data-checked:text-white data-checked:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_4px_12px_rgba(0,0,0,0.16)]'
+                    : 'text-[#627181] hover:text-[#15202b] focus:bg-white focus:text-[#15202b] data-checked:bg-white data-checked:text-[#15202b] data-checked:shadow-[0_3px_8px_rgba(21,32,43,0.12)]'
+                }`}
+              >
+                {option}s
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </div>
+
+        <div
+          className={`my-3 border-t ${
+            isConsoleAppearance ? 'border-white/[0.09]' : 'border-[#e4e8eb]'
+          }`}
+        />
+
+        <div>
+          <p
+            className={`px-1 pb-2.5 text-[10px] font-semibold tracking-[0.18em] uppercase ${
+              isConsoleAppearance ? 'text-neutral-500' : 'text-[#627181]'
+            }`}
+          >
+            {aspectRatioLabel}
+          </p>
+          <DropdownMenuRadioGroup
+            value={aspectRatio}
+            onValueChange={(nextValue) =>
+              onAspectRatioChange(String(nextValue))
+            }
+            className="grid grid-cols-3 gap-1.5 sm:grid-cols-5"
+          >
+            {aspectRatioOptions.map((option) => {
+              const selected = aspectRatio === option.value;
+              return (
+                <DropdownMenuRadioItem
+                  key={option.value}
+                  value={option.value}
+                  label={option.value}
+                  closeOnClick={false}
+                  className={`group/ratio flex h-[74px] flex-col justify-center gap-1.5 rounded-[14px] border border-transparent px-1.5 py-1.5 text-xs font-medium transition-[background-color,border-color,color,box-shadow] duration-150 [&_[data-slot=dropdown-menu-radio-item-indicator]]:hidden ${
+                    isConsoleAppearance
+                      ? 'text-neutral-400 hover:bg-white/[0.06] hover:text-white focus:bg-white/[0.08] focus:text-white data-checked:border-white/[0.04] data-checked:bg-[#303135] data-checked:text-white data-checked:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
+                      : 'text-[#627181] hover:bg-[#f3f5f6] hover:text-[#15202b] focus:bg-[#e9eef1] focus:text-[#15202b] data-checked:bg-[#e9eef1] data-checked:text-[#15202b]'
+                  }`}
+                >
+                  <span
+                    className="grid size-7 shrink-0 place-items-center"
+                    aria-hidden="true"
+                  >
+                    <span
+                      className={`block rounded-[2px] border-2 transition-colors ${option.previewClassName} ${
+                        selected
+                          ? isConsoleAppearance
+                            ? 'border-cyan-100 text-cyan-100'
+                            : 'border-[#15202b] text-[#15202b]'
+                          : isConsoleAppearance
+                            ? 'border-neutral-600 text-neutral-600 group-hover/ratio:border-neutral-300 group-hover/ratio:text-neutral-300'
+                            : 'border-[#8ba0ac] text-[#8ba0ac] group-hover/ratio:border-[#4b5b68] group-hover/ratio:text-[#4b5b68]'
+                      }`}
+                    />
+                  </span>
+                  <span className="tabular-nums">{option.value}</span>
+                </DropdownMenuRadioItem>
+              );
+            })}
           </DropdownMenuRadioGroup>
         </div>
       </DropdownMenuContent>

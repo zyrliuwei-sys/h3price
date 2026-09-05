@@ -1,10 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import {
-  DEFAULT_SOCIAL_IMAGE_URL,
-  SITE_URL,
-  siteSeo,
-} from '@/lib/motion-control-seo';
+import { h3RouteHead } from '@/lib/h3-route-head';
+import { SITE_URL } from '@/lib/h3-seo';
+import { FAL_H3_MAX_MODEL_URL, REGULAR } from '@/lib/pricing';
 import { m } from '@/paraglide/messages.js';
 import { ProactivReferenceLanding } from '@/blocks/proactiv-reference-landing';
 
@@ -19,15 +17,19 @@ function HomePage() {
   const structuredData = [
     {
       '@context': 'https://schema.org',
-      '@type': 'SoftwareApplication',
-      name: 'h3price ai',
+      '@type': 'Product',
+      name: 'MiniMax H3 Max by fal',
       url: SITE_URL,
-      applicationCategory: 'MultimediaApplication',
-      operatingSystem: 'Web',
+      brand: {
+        '@type': 'Brand',
+        name: 'fal',
+      },
       offers: {
         '@type': 'Offer',
-        price: '10',
+        url: FAL_H3_MAX_MODEL_URL,
+        price: String(REGULAR['768p']),
         priceCurrency: 'USD',
+        description: 'Published regular API price per second at 768p.',
       },
     },
     {
@@ -56,34 +58,6 @@ function HomePage() {
 }
 
 export const Route = createFileRoute('/')({
-  head: () => ({
-    meta: [
-      { title: siteSeo.home.title },
-      { name: 'description', content: siteSeo.home.description },
-      { name: 'robots', content: 'index,follow' },
-      { property: 'og:type', content: 'website' },
-      { property: 'og:title', content: siteSeo.home.title },
-      {
-        property: 'og:description',
-        content: siteSeo.home.description,
-      },
-      { property: 'og:url', content: SITE_URL },
-      {
-        property: 'og:image',
-        content: DEFAULT_SOCIAL_IMAGE_URL,
-      },
-      { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: siteSeo.home.title },
-      {
-        name: 'twitter:description',
-        content: siteSeo.home.description,
-      },
-      {
-        name: 'twitter:image',
-        content: DEFAULT_SOCIAL_IMAGE_URL,
-      },
-    ],
-    links: [{ rel: 'canonical', href: SITE_URL }],
-  }),
+  head: () => h3RouteHead('home'),
   component: HomePage,
 });

@@ -27,9 +27,11 @@ const isExternalHref = (href: string) => /^https?:\/\//.test(href);
 export function SiteHeader({
   navLinks,
   tone = 'default',
+  primaryAction,
 }: {
   navLinks?: NavLink[];
   tone?: 'default' | 'cinema';
+  primaryAction?: NavLink;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: session } = useSession();
@@ -56,6 +58,10 @@ export function SiteHeader({
       ? 'text-[#b9b5ae] hover:bg-white/[0.07] hover:text-[#f5b65e]'
       : 'text-muted-foreground hover:bg-accent hover:text-foreground'
   );
+  const action = primaryAction ?? {
+    href: '/settings',
+    label: m['common.nav.get_started'](),
+  };
 
   return (
     <header
@@ -114,9 +120,19 @@ export function SiteHeader({
               email={user.email}
               image={user.image}
             />
+          ) : isExternalHref(action.href) ? (
+            <a
+              href={action.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={primaryActionClass}
+            >
+              {action.label}
+              <ArrowRight className="size-4" />
+            </a>
           ) : (
-            <Link href="/settings" className={primaryActionClass}>
-              {m['common.nav.get_started']()}
+            <Link href={action.href} className={primaryActionClass}>
+              {action.label}
               <ArrowRight className="size-4" />
             </Link>
           )}
@@ -185,13 +201,23 @@ export function SiteHeader({
                 email={user.email}
                 image={user.image}
               />
-            ) : (
-              <Link
-                href="/settings"
+            ) : isExternalHref(action.href) ? (
+              <a
+                href={action.href}
+                target="_blank"
+                rel="noopener noreferrer"
                 className={primaryActionClass}
                 onClick={() => setMobileOpen(false)}
               >
-                {m['common.nav.get_started']()}
+                {action.label}
+              </a>
+            ) : (
+              <Link
+                href={action.href}
+                className={primaryActionClass}
+                onClick={() => setMobileOpen(false)}
+              >
+                {action.label}
               </Link>
             )}
           </div>
