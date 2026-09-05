@@ -959,6 +959,7 @@
   "proactiv.video.studio.reference_video": "Reference video",
   "proactiv.video.studio.generated_video": "Generated video",
   "proactiv.video.studio.generated_image": "Generated image",
+  "proactiv.video.studio.prompt": "Prompt",
   "proactiv.video.studio.image_preview_empty": "Select a generated image to preview it here.",
   "proactiv.video.studio.resize_preview": "Drag to resize · double-click to reset",
   "proactiv.video.studio.insufficient_credits": "Insufficient credits. Please purchase credits before generating a video.",

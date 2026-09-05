@@ -153,6 +153,7 @@ export function TextToVideo({
           referenceVideoLabel: m['proactiv.video.studio.reference_video'](),
           generatedVideoLabel: m['proactiv.video.studio.generated_video'](),
           generatedImageLabel: m['proactiv.video.studio.generated_image'](),
+          promptLabel: m['proactiv.video.studio.prompt'](),
           imagePreviewEmptyLabel:
             m['proactiv.video.studio.image_preview_empty'](),
           imagePreviewTitleLabel: m['proactiv.video.studio.image_preview'](),

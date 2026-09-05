@@ -61,6 +61,7 @@ export type FalH3MaxTask = {
   id: string;
   isArchived: boolean;
   model: string;
+  prompt: string;
   progress: number;
   providerTaskId: string | null;
   resultUrls: string[];
@@ -171,6 +172,7 @@ function toClientTask(task: AiTask): FalH3MaxTask {
     id: task.id,
     isArchived: false,
     model: task.model,
+    prompt: task.prompt,
     progress: Math.max(0, Math.min(100, Number(info.progress) || 0)),
     providerTaskId: task.taskId ?? null,
     resultUrls: resultUrls(task.taskResult),
