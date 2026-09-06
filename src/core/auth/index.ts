@@ -135,11 +135,6 @@ function getEmailProvider(
   return { provider: new ResendProvider({ apiKey, defaultFrom: from }), from };
 }
 
-/** Check whether email sending is available for the selected provider */
-function isEmailConfigured(configs: Record<string, string>): boolean {
-  return getEmailProvider(configs) !== null;
-}
-
 function getAuthPlugins(configs: Record<string, string> | undefined) {
   if (!configs) return [];
   const plugins: any[] = [];
@@ -172,8 +167,7 @@ export function getAuth(configs?: Record<string, string>) {
   // Rebuild if the email-verification flag changed
   if (configs) {
     const nextVerificationEnabled =
-      configs.email_verification_enabled === 'true' &&
-      isEmailConfigured(configs);
+      configs.email_verification_enabled === 'true';
     if (nextVerificationEnabled !== emailVerificationEnabledLoaded) {
       authInstance = null;
       emailVerificationEnabledLoaded = nextVerificationEnabled;
@@ -187,8 +181,7 @@ export function getAuth(configs?: Record<string, string>) {
     ? configs.email_auth_enabled !== 'false'
     : true;
   const emailVerificationEnabled = configs
-    ? configs.email_verification_enabled === 'true' &&
-      isEmailConfigured(configs)
+    ? configs.email_verification_enabled === 'true'
     : false;
   const appName = configs?.app_name || envConfigs.app_name;
   const appUrl = configs?.app_url || envConfigs.app_url;
@@ -334,7 +327,7 @@ export function getAuth(configs?: Record<string, string>) {
     ...(emailVerificationEnabled
       ? {
           emailVerification: {
-            sendOnSignUp: false,
+            sendOnSignUp: true,
             sendOnSignIn: false,
             autoSignInAfterVerification: true,
             expiresIn: 60 * 60 * 24,
@@ -360,10 +353,9 @@ export function getAuth(configs?: Record<string, string>) {
                 const all = await getAllConfigs();
                 const emailCtx = getEmailProvider(all);
                 if (!emailCtx) {
-                  console.error(
-                    '[auth] sendVerificationEmail: No email provider configured'
+                  throw new Error(
+                    'Verification email provider is not configured'
                   );
-                  return;
                 }
                 const appName = all.app_name || envConfigs.app_name;
                 // Email clients don't render SVG <img>; only embed a raster logo,
@@ -381,13 +373,13 @@ export function getAuth(configs?: Record<string, string>) {
                   react: VerifyEmail({ appName, logoUrl, url }),
                 });
                 if (!result.success) {
-                  console.error(
-                    '[auth] sendVerificationEmail failed:',
-                    result.error
-                  );
+                  throw new Error('Verification email delivery failed');
                 }
               } catch (e) {
-                console.error('[auth] sendVerificationEmail error:', e);
+                recentVerificationEmailSentAt.delete(
+                  String(user?.email || '').toLowerCase()
+                );
+                throw new Error('Verification email delivery failed');
               }
             },
           },

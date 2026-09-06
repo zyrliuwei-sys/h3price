@@ -704,3 +704,14 @@ export type InviteCode = typeof inviteCode.$inferSelect;
 export type NewInviteCode = typeof inviteCode.$inferInsert;
 export type UserInvite = typeof userInvite.$inferSelect;
 export type NewUserInvite = typeof userInvite.$inferInsert;
+
+// Explicit opt-in requests; accessed only by server-side services.
+export const priceAlert = table('price_alert', {
+  id: text('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  consentVersion: text('consent_version').notNull(),
+  consentedAt: integer('consented_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+export type PriceAlert = typeof priceAlert.$inferSelect;

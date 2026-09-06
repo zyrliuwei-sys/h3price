@@ -1,14 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { SITE_URL } from '@/lib/motion-control-seo';
+import { h3PageSeo, SITE_URL } from '@/lib/h3-seo';
 import { baseLocale, locales, localizeUrl } from '@/paraglide/runtime.js';
 
-const STATIC_PATHS = [
-  '',
-  '/cost-calculator',
-  '/prompt-generator',
-  '/vs/veo-3-1',
-];
+const STATIC_PATHS = Object.values(h3PageSeo).map((page) => page.path);
 
 type Entry = {
   path: string;
@@ -50,7 +45,7 @@ export const Route = createFileRoute('/sitemap.xml')({
         const entries: Entry[] = STATIC_PATHS.map((path) => ({
           path,
           changeFrequency: 'weekly',
-          priority: path === '' ? 1 : 0.8,
+          priority: path === '/' ? 1 : 0.8,
         }));
 
         const xml = [

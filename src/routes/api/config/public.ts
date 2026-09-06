@@ -54,9 +54,7 @@ async function GET({ request }: { request: Request }) {
       ? 'true'
       : 'false';
   result.email_verification_enabled =
-    configs.email_verification_enabled === 'true' && emailConfigured
-      ? 'true'
-      : 'false';
+    configs.email_verification_enabled === 'true' ? 'true' : 'false';
   return respData(result, noStore);
 }
 

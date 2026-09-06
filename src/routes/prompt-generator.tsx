@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
 
 import { h3RouteHead } from '@/lib/h3-route-head';
+import { H3Tools } from '@/blocks/h3/tools';
 import { H3PageFrame } from '@/components/h3/h3-page-frame';
 import { H3PromptGenerator } from '@/components/h3/h3-prompt-generator';
 
@@ -14,6 +15,7 @@ function PromptGeneratorPage() {
   return (
     <H3PageFrame>
       <H3PromptGenerator initialSubject={prompt} />
+      <H3Tools />
     </H3PageFrame>
   );
 }

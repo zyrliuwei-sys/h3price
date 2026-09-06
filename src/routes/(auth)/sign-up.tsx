@@ -3,10 +3,11 @@ import { useForm } from '@tanstack/react-form';
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
 
-import { authClient, signIn, signUp, useSession } from '@/core/auth/client';
+import { signIn, signUp, useSession } from '@/core/auth/client';
 import { Link, useRouter } from '@/core/i18n/navigation';
 import { envConfigs } from '@/config';
 import { apiPost } from '@/lib/api-client';
+import { authRouteHead } from '@/lib/auth-route-head';
 import { resolveAfterAuthUrl, safeInternalPath } from '@/lib/redirect';
 import { m } from '@/paraglide/messages.js';
 import { localizeHref } from '@/paraglide/runtime.js';
@@ -22,18 +23,14 @@ import {
   AuthSocialButtons,
 } from './-auth-ui';
 
-const signUpSchema = z
-  .object({
-    name: z.string().min(1),
-    email: z.string().email(m['common.sign.email_placeholder']()),
-    password: z.string().min(8),
-    confirmPassword: z.string().min(8),
-    inviteCode: z.string(),
-  })
-  .refine((d) => d.password === d.confirmPassword, {
-    path: ['confirmPassword'],
-    message: m['common.sign.password_mismatch'](),
-  });
+const signUpSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  inviteCode: z.string(),
+  privacyConsent: z
+    .boolean()
+    .refine(Boolean, m['common.sign.privacy_required']()),
+});
 
 function SignUpPage() {
   const router = useRouter();
@@ -67,7 +64,7 @@ function SignUpPage() {
   const afterLoginUrl = resolveAfterAuthUrl({
     redirect: redirectParam,
     callbackUrl,
-    fallback: '/settings',
+    fallback: '/cost-calculator',
   });
 
   // Carry callbackUrl/redirect across to sign-in so the destination survives the switch.
@@ -94,10 +91,9 @@ function SignUpPage() {
 
   const form = useForm({
     defaultValues: {
-      name: '',
       email: '',
       password: '',
-      confirmPassword: '',
+      privacyConsent: false,
       inviteCode: '',
     },
     validators: { onSubmit: signUpSchema },
@@ -121,11 +117,14 @@ function SignUpPage() {
           }
         }
 
-        const result = await signUp.email({
-          name: value.name,
+        const signupPayload = {
+          name: value.email.split('@')[0],
+          privacyConsent: value.privacyConsent,
+          callbackURL: localizeHref(afterLoginUrl),
           email: value.email,
           password: value.password,
-        });
+        };
+        const result = await signUp.email(signupPayload);
         if (result.error) {
           setError(result.error.message || 'Sign up failed');
           return;
@@ -145,10 +144,6 @@ function SignUpPage() {
           const verifyPath = `/verify-email?sent=1&email=${encodeURIComponent(
             value.email
           )}&callbackUrl=${encodeURIComponent(afterLoginUrl)}`;
-          void authClient.sendVerificationEmail({
-            email: value.email,
-            callbackURL: localizeHref(afterLoginUrl),
-          });
           router.push(verifyPath);
         } else {
           // Hard navigation so the destination reloads with a fresh session
@@ -164,6 +159,10 @@ function SignUpPage() {
   });
 
   async function handleSocial(provider: 'google' | 'github') {
+    if (!form.state.values.privacyConsent) {
+      setError(m['common.sign.privacy_required']());
+      return;
+    }
     await signIn.social({ provider, callbackURL: afterLoginUrl });
   }
 
@@ -197,8 +196,40 @@ function SignUpPage() {
           </div>
         ) : (
           <>
+            {error && (
+              <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
+                {error}
+              </div>
+            )}
+            <form.Field name="privacyConsent">
+              {(field) => (
+                <div className="text-sm text-zinc-300">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      form="email-signup"
+                      required
+                      checked={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.checked)}
+                      className="mt-1"
+                    />
+                    {m['common.sign.privacy_consent']()}
+                  </label>
+                  <Link
+                    href="/privacy-policy"
+                    className="mt-2 inline-block underline"
+                  >
+                    {m['h3.footer.privacy']()}
+                  </Link>
+                  <p className="mt-2 text-xs text-zinc-400">
+                    {m['common.sign.privacy_notice']()}
+                  </p>
+                </div>
+              )}
+            </form.Field>
             {emailEnabled && (
               <form
+                id="email-signup"
                 className="mt-8"
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -206,26 +237,6 @@ function SignUpPage() {
                 }}
               >
                 <FieldGroup className="gap-5">
-                  {error && (
-                    <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
-                      {error}
-                    </div>
-                  )}
-
-                  <form.Field name="name">
-                    {(field) => (
-                      <TextField
-                        field={field}
-                        label={m['common.sign.name_title']()}
-                        type="text"
-                        autoComplete="name"
-                        required
-                        placeholder={m['common.sign.name_placeholder']()}
-                        labelClassName={authLabelClass}
-                        inputClassName={authInputClass}
-                      />
-                    )}
-                  </form.Field>
                   <form.Field name="email">
                     {(field) => (
                       <TextField
@@ -254,22 +265,6 @@ function SignUpPage() {
                       />
                     )}
                   </form.Field>
-                  <form.Field name="confirmPassword">
-                    {(field) => (
-                      <TextField
-                        field={field}
-                        label={m['common.sign.confirm_password_title']()}
-                        type="password"
-                        autoComplete="new-password"
-                        required
-                        placeholder={m[
-                          'common.sign.confirm_password_placeholder'
-                        ]()}
-                        labelClassName={authLabelClass}
-                        inputClassName={authInputClass}
-                      />
-                    )}
-                  </form.Field>
                   {inviteCodeRequired && (
                     <form.Field name="inviteCode">
                       {(field) => (
@@ -287,6 +282,7 @@ function SignUpPage() {
                       )}
                     </form.Field>
                   )}
+
                   <form.Subscribe selector={(s) => s.isSubmitting}>
                     {(isSubmitting) => (
                       <Button
@@ -329,5 +325,6 @@ function SignUpPage() {
 }
 
 export const Route = createFileRoute('/(auth)/sign-up')({
+  head: () => authRouteHead('sign-up'),
   component: SignUpPage,
 });
