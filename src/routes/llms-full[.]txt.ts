@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import { envConfigs } from '@/config';
+import { SITE_URL } from '@/lib/h3-seo';
 
 const STATIC_PAGES: { path: string; title: string; description: string }[] = [
   { path: '', title: 'Home', description: 'Landing page' },
@@ -11,7 +12,7 @@ export const Route = createFileRoute('/llms-full.txt')({
   server: {
     handlers: {
       GET: async () => {
-        const { app_url, app_name, app_description } = envConfigs;
+        const { app_name, app_description } = envConfigs;
 
         const lines: string[] = [
           `# ${app_name}`,
@@ -21,7 +22,7 @@ export const Route = createFileRoute('/llms-full.txt')({
           '## Pages',
           '',
           ...STATIC_PAGES.map(
-            (p) => `- [${p.title}](${app_url}${p.path}): ${p.description}`
+            (p) => `- [${p.title}](${SITE_URL}${p.path}): ${p.description}`
           ),
         ];
 

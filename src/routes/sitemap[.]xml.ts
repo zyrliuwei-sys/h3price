@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import { h3PageSeo, SITE_URL } from '@/lib/h3-seo';
-import { baseLocale, locales, localizeUrl } from '@/paraglide/runtime.js';
+import { baseLocale, localizeUrl } from '@/paraglide/runtime.js';
 
 const STATIC_PATHS = Object.values(h3PageSeo).map((page) => page.path);
 
@@ -12,23 +12,16 @@ type Entry = {
   priority: number;
 };
 
-function urlFor(path: string, locale: string): string {
+function urlFor(path: string): string {
   return localizeUrl(`${SITE_URL}${path || '/'}`, {
-    locale: locale as (typeof locales)[number],
+    locale: baseLocale,
   }).href;
 }
 
 function entryXml(e: Entry): string {
-  const alternates = locales
-    .map(
-      (loc) =>
-        `    <xhtml:link rel="alternate" hreflang="${loc}" href="${urlFor(e.path, loc)}"/>`
-    )
-    .join('\n');
   return [
     '  <url>',
-    `    <loc>${urlFor(e.path, baseLocale)}</loc>`,
-    alternates,
+    `    <loc>${urlFor(e.path)}</loc>`,
     e.lastModified ? `    <lastmod>${e.lastModified}</lastmod>` : null,
     `    <changefreq>${e.changeFrequency}</changefreq>`,
     `    <priority>${e.priority}</priority>`,
@@ -50,7 +43,7 @@ export const Route = createFileRoute('/sitemap.xml')({
 
         const xml = [
           '<?xml version="1.0" encoding="UTF-8"?>',
-          '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+          '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
           ...entries.map(entryXml),
           '</urlset>',
           '',

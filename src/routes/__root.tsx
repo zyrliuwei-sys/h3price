@@ -12,9 +12,8 @@ import { createServerFn } from '@tanstack/react-start';
 import { ThemeProvider } from 'next-themes';
 
 import { envConfigs } from '@/config';
-import { SITE_URL } from '@/lib/motion-control-seo';
 import { getQueryClient } from '@/lib/query-client';
-import { getLocale, locales, localizeUrl } from '@/paraglide/runtime.js';
+import { getLocale } from '@/paraglide/runtime.js';
 import { Ads } from '@/components/analytics/ads';
 import { GoogleAnalytics } from '@/components/analytics/google-analytics';
 import { Plausible } from '@/components/analytics/plausible';
@@ -53,29 +52,18 @@ const getAnalyticsConfigs = createServerFn().handler(async () => {
 
 export const Route = createRootRoute({
   loader: () => getAnalyticsConfigs(),
-  head: ({ matches }) => {
-    // Use the public production origin for every locale alternate. VITE_APP_URL
-    // is intentionally localhost in development, so using it here would leak
-    // invalid hreflang URLs into SSR output and hydration.
-    const currentPath = matches.at(-1)?.pathname || '/';
-    return {
-      meta: [
-        { charSet: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { title: envConfigs.app_name },
-        { name: 'description', content: envConfigs.app_description },
-      ],
-      links: [
-        { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' },
-        { rel: 'apple-touch-icon', href: '/favicon.svg' },
-        ...locales.map((loc) => ({
-          rel: 'alternate',
-          hrefLang: loc,
-          href: localizeUrl(`${SITE_URL}${currentPath}`, { locale: loc }).href,
-        })),
-      ],
-    };
-  },
+  head: () => ({
+    meta: [
+      { charSet: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { title: envConfigs.app_name },
+      { name: 'description', content: envConfigs.app_description },
+    ],
+    links: [
+      { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' },
+      { rel: 'apple-touch-icon', href: '/favicon.svg' },
+    ],
+  }),
   component: RootComponent,
   shellComponent: RootDocument,
   notFoundComponent: NotFound,

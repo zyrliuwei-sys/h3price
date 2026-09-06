@@ -86,15 +86,7 @@ export const Route = createFileRoute('/text-to-image')({
       },
       { 'script:ld+json': breadcrumbStructuredData },
     ],
-    links: [
-      { rel: 'canonical', href: canonicalUrl },
-      { rel: 'alternate', hrefLang: 'en', href: canonicalUrl },
-      {
-        rel: 'alternate',
-        hrefLang: 'zh',
-        href: `${SITE_URL}/zh${siteSeo.textToImage.path}`,
-      },
-    ],
+    links: [{ rel: 'canonical', href: canonicalUrl }],
   }),
   component: TextToImageRoute,
 });

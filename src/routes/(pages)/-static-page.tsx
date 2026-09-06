@@ -2,13 +2,9 @@ import type { ComponentType } from 'react';
 import { notFound, useLoaderData } from '@tanstack/react-router';
 
 import { envConfigs } from '@/config';
+import { SITE_URL } from '@/lib/h3-seo';
 import { m } from '@/paraglide/messages.js';
-import {
-  baseLocale,
-  getLocale,
-  locales,
-  localizeUrl,
-} from '@/paraglide/runtime.js';
+import { baseLocale, getLocale, localizeUrl } from '@/paraglide/runtime.js';
 
 type PageMeta = {
   title: string;
@@ -70,38 +66,37 @@ export function staticPageRouteOptions(
     head: ({ loaderData }: { loaderData?: LoaderData }) => {
       if (!loaderData) return {};
       const { meta, locale, structuredData } = loaderData;
-      const canonical = localizeUrl(`${envConfigs.app_url}/${slug}`, {
+      // Canonical URLs use the public production origin — VITE_APP_URL is
+      // localhost in development.
+      const canonical = localizeUrl(`${SITE_URL}/${slug}`, {
         locale: locale as ReturnType<typeof getLocale>,
       }).href;
+      // Guard against MDX frontmatter exporting an empty title/description:
+      // `{ title: '' }` renders as a bogus `<meta title=""/>` instead of
+      // a <title> element.
+      const title = meta.title?.trim() || `${slug} | ${envConfigs.app_name}`;
+      const description =
+        meta.description?.trim() || envConfigs.app_description;
       return {
         meta: [
-          { title: meta.title },
-          { name: 'description', content: meta.description },
+          { title },
+          { name: 'description', content: description },
           ...(socialImage
             ? [
                 { name: 'robots', content: 'index,follow' },
-                { property: 'og:title', content: meta.title },
-                { property: 'og:description', content: meta.description },
+                { property: 'og:title', content: title },
+                { property: 'og:description', content: description },
                 { property: 'og:url', content: canonical },
                 { property: 'og:image', content: socialImage },
                 { name: 'twitter:card', content: 'summary_large_image' },
-                { name: 'twitter:title', content: meta.title },
-                { name: 'twitter:description', content: meta.description },
+                { name: 'twitter:title', content: title },
+                { name: 'twitter:description', content: description },
                 { name: 'twitter:image', content: socialImage },
               ]
             : []),
           ...(structuredData ? [{ 'script:ld+json': structuredData }] : []),
         ],
-        links: [
-          { rel: 'canonical', href: canonical },
-          ...locales.map((alternateLocale) => ({
-            rel: 'alternate' as const,
-            hrefLang: alternateLocale,
-            href: localizeUrl(`${envConfigs.app_url}/${slug}`, {
-              locale: alternateLocale,
-            }).href,
-          })),
-        ],
+        links: [{ rel: 'canonical', href: canonical }],
       };
     },
     component: StaticPage,

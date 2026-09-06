@@ -15,9 +15,11 @@ const publicEnv = (key: string) => metaEnv[key] ?? procEnv[key];
 
 export const envConfigs: Record<string, string> = {
   // App (public)
-  site_url: publicEnv('VITE_SITE_URL') ?? 'https://h3price.com',
-  app_url: publicEnv('VITE_APP_URL') ?? 'http://localhost:3000',
-  app_name: publicEnv('VITE_APP_NAME') ?? 'h3price ai',
+  // `||` (not `??`): an explicitly empty VITE_APP_NAME / VITE_SITE_URL in the
+  // deploy environment must not blank out the brand name and canonical origin.
+  site_url: publicEnv('VITE_SITE_URL') || 'https://www.h3price.com',
+  app_url: publicEnv('VITE_APP_URL') || 'http://localhost:3000',
+  app_name: publicEnv('VITE_APP_NAME') || 'h3price ai',
   app_description:
     publicEnv('VITE_APP_DESCRIPTION') ??
     'H3 Max pricing, a cost calculator, and a MiniMax H3 prompt generator.',
