@@ -45,9 +45,9 @@ function navHref(id: string) {
     case 'image-to-video':
     case 'video-extender':
     case 'image-generator':
-      return '/text-to-image#studio-feed';
+      return '/text-to-video#studio-feed';
     case 'text-to-video':
-      return '/text-to-image';
+      return '/text-to-video';
     case 'home':
       return '/';
     case 'blog':
@@ -55,7 +55,7 @@ function navHref(id: string) {
     case 'upgrade':
       return '/pricing';
     default:
-      return '/text-to-image';
+      return '/text-to-video';
   }
 }
 
@@ -167,37 +167,44 @@ export function TextToVideo({
             m['proactiv.video.studio.credit_paywall.description'](),
           creditPackOptions: [
             {
-              productId: h3MaxRetailPlans.essentials.oneTime.productId,
-              price: h3MaxRetailPlans.essentials.oneTime.priceInCents / 100,
+              productId: h3MaxRetailPlans.essentials.monthly.productId,
+              price: h3MaxRetailPlans.essentials.monthly.priceInCents / 100,
               planName: m['landing.pricing.essentials'](),
               creditsLabel: m['landing.pricing.feature_credits']({
                 credits:
-                  h3MaxRetailPlans.essentials.oneTime.credits.toLocaleString(
+                  h3MaxRetailPlans.essentials.monthly.credits.toLocaleString(
                     'en-US'
                   ),
               }),
+              intervalLabel:
+                m['proactiv.video.studio.credit_paywall.per_month'](),
             },
             {
-              productId: h3MaxRetailPlans.studio.oneTime.productId,
-              price: h3MaxRetailPlans.studio.oneTime.priceInCents / 100,
+              productId: h3MaxRetailPlans.studio.monthly.productId,
+              price: h3MaxRetailPlans.studio.monthly.priceInCents / 100,
               planName: m['landing.pricing.studio'](),
               creditsLabel: m['landing.pricing.feature_credits']({
                 credits:
-                  h3MaxRetailPlans.studio.oneTime.credits.toLocaleString(
+                  h3MaxRetailPlans.studio.monthly.credits.toLocaleString(
                     'en-US'
                   ),
               }),
+              intervalLabel:
+                m['proactiv.video.studio.credit_paywall.per_month'](),
+              badgeLabel: m['proactiv.video.studio.credit_paywall.popular'](),
             },
             {
-              productId: h3MaxRetailPlans.production.oneTime.productId,
-              price: h3MaxRetailPlans.production.oneTime.priceInCents / 100,
+              productId: h3MaxRetailPlans.production.monthly.productId,
+              price: h3MaxRetailPlans.production.monthly.priceInCents / 100,
               planName: m['landing.pricing.production'](),
               creditsLabel: m['landing.pricing.feature_credits']({
                 credits:
-                  h3MaxRetailPlans.production.oneTime.credits.toLocaleString(
+                  h3MaxRetailPlans.production.monthly.credits.toLocaleString(
                     'en-US'
                   ),
               }),
+              intervalLabel:
+                m['proactiv.video.studio.credit_paywall.per_month'](),
             },
           ],
           checkoutFailedMessage:

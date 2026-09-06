@@ -81,7 +81,7 @@ export function ThreeDMarquee({ className, images }: ThreeDMarqueeProps) {
               {sequence.map((image, imageIndex) => (
                 <a
                   key={`${image.src}-${imageIndex}`}
-                  href="/text-to-image"
+                  href="/text-to-video"
                   className="group relative block aspect-[4/3] overflow-hidden rounded-lg border border-white/25 bg-zinc-100 shadow-[0_18px_36px_rgba(24,24,27,0.14)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
                 >
                   <img

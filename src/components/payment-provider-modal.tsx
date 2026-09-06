@@ -27,10 +27,12 @@ interface Props {
   loadingProvider?: PaymentProvider | null;
   onSelect: (provider: PaymentProvider) => void;
   priceOptions?: readonly {
-    id: string;
-    price: number;
-    planName: string;
+    badgeLabel?: string;
     creditsLabel: string;
+    id: string;
+    intervalLabel?: string;
+    planName: string;
+    price: number;
   }[];
   selectedPriceOptionId?: string;
   onSelectPriceOption?: (id: string) => void;
@@ -73,15 +75,17 @@ export function PaymentProviderModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={`overflow-hidden border-[#d6e0e7] bg-white p-0 shadow-[0_24px_80px_rgba(21,32,43,0.2)] ${
+        className={`overflow-hidden border-white/10 bg-[#101214] p-0 shadow-[0_24px_80px_rgba(0,0,0,0.6)] ${
           priceOptions?.length ? 'sm:max-w-2xl' : 'sm:max-w-md'
         }`}
       >
         <DialogHeader className="px-6 pt-6 sm:px-7 sm:pt-7">
-          <DialogTitle>
+          <DialogTitle className="text-neutral-100">
             {title ?? m['common.pricing.choose_payment']()}
           </DialogTitle>
-          <DialogDescription>{dialogDescription}</DialogDescription>
+          <DialogDescription className="text-neutral-400">
+            {dialogDescription}
+          </DialogDescription>
         </DialogHeader>
 
         {priceOptions?.length ? (
@@ -94,7 +98,7 @@ export function PaymentProviderModal({
           </div>
         ) : null}
 
-        <div className="mt-5 border-t border-[#e7ecef] bg-[#fbfcfd] px-6 py-5 sm:px-7 sm:py-6">
+        <div className="mt-5 border-t border-white/10 bg-[#0d0f11] px-6 py-5 sm:px-7 sm:py-6">
           <div className="space-y-2">
             {providers.map((p) => {
               const loading = loadingProvider === p;
@@ -102,7 +106,7 @@ export function PaymentProviderModal({
                 <Button
                   key={p}
                   variant="outline"
-                  className="h-14 w-full justify-start gap-3 rounded-xl border-[#d6e0e7] bg-white px-4 text-base text-[#15202b] shadow-sm transition hover:border-[#efb0c4] hover:bg-[#fff0f5]"
+                  className="h-14 w-full justify-start gap-3 rounded-xl border-white/15 bg-[#141619] px-4 text-base text-neutral-100 transition hover:border-[#efb0c4] hover:bg-white/[0.06]"
                   disabled={!!loadingProvider}
                   onClick={() => onSelect(p)}
                 >

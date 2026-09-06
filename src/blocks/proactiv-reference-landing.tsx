@@ -162,7 +162,7 @@ export function ProactivReferenceLanding() {
                     requireReferences={false}
                     onGenerate={({ prompt }) => {
                       router.push(
-                        `/text-to-image?prompt=${encodeURIComponent(prompt)}`
+                        `/text-to-video?prompt=${encodeURIComponent(prompt)}`
                       );
                     }}
                   />

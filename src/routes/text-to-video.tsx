@@ -6,14 +6,14 @@ import { useRouter } from '@/core/i18n/navigation';
 import {
   SITE_URL,
   siteSeo,
-  TEXT_TO_IMAGE_SOCIAL_IMAGE_URL,
+  TEXT_TO_VIDEO_SOCIAL_IMAGE_URL,
 } from '@/lib/motion-control-seo';
 import { TextToVideo } from '@/blocks/text-to-video';
 
-const textToImageSearchSchema = z.object({
+const textToVideoSearchSchema = z.object({
   prompt: z.string().max(4000).optional(),
 });
-const canonicalUrl = `${SITE_URL}${siteSeo.textToImage.path}`;
+const canonicalUrl = `${SITE_URL}${siteSeo.textToVideo.path}`;
 
 const breadcrumbStructuredData = {
   '@context': 'https://schema.org',
@@ -23,18 +23,18 @@ const breadcrumbStructuredData = {
       '@type': 'ListItem',
       position: 1,
       name: 'Home',
-      item: 'https://www.uncensoredaieditor.com/',
+      item: `${SITE_URL}/`,
     },
     {
       '@type': 'ListItem',
       position: 2,
-      name: 'Uncensored AI Image Editor',
-      item: 'https://www.uncensoredaieditor.com/text-to-image',
+      name: siteSeo.textToVideo.title.split(' | ')[0],
+      item: canonicalUrl,
     },
   ],
 };
 
-function TextToImageRoute() {
+function TextToVideoRoute() {
   const { prompt } = Route.useSearch();
   const router = useRouter();
 
@@ -59,34 +59,34 @@ function TextToImageRoute() {
   return <TextToVideo initialPrompt={prompt} showTemplateFeed={false} />;
 }
 
-export const Route = createFileRoute('/text-to-image')({
-  validateSearch: textToImageSearchSchema,
+export const Route = createFileRoute('/text-to-video')({
+  validateSearch: textToVideoSearchSchema,
   head: () => ({
     meta: [
-      { title: siteSeo.textToImage.title },
-      { name: 'description', content: siteSeo.textToImage.description },
+      { title: siteSeo.textToVideo.title },
+      { name: 'description', content: siteSeo.textToVideo.description },
       { name: 'robots', content: 'index,follow' },
       { property: 'og:type', content: 'website' },
-      { property: 'og:title', content: siteSeo.textToImage.title },
+      { property: 'og:title', content: siteSeo.textToVideo.title },
       {
         property: 'og:description',
-        content: siteSeo.textToImage.description,
+        content: siteSeo.textToVideo.description,
       },
       { property: 'og:url', content: canonicalUrl },
-      { property: 'og:image', content: TEXT_TO_IMAGE_SOCIAL_IMAGE_URL },
+      { property: 'og:image', content: TEXT_TO_VIDEO_SOCIAL_IMAGE_URL },
       { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: siteSeo.textToImage.title },
+      { name: 'twitter:title', content: siteSeo.textToVideo.title },
       {
         name: 'twitter:description',
-        content: siteSeo.textToImage.description,
+        content: siteSeo.textToVideo.description,
       },
       {
         name: 'twitter:image',
-        content: TEXT_TO_IMAGE_SOCIAL_IMAGE_URL,
+        content: TEXT_TO_VIDEO_SOCIAL_IMAGE_URL,
       },
       { 'script:ld+json': breadcrumbStructuredData },
     ],
     links: [{ rel: 'canonical', href: canonicalUrl }],
   }),
-  component: TextToImageRoute,
+  component: TextToVideoRoute,
 });

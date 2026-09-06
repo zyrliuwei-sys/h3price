@@ -323,7 +323,7 @@ export function HomeHeroLandingScrollAnimation({
           </p>
           {ctaLabel ? (
             <a
-              href="/text-to-image"
+              href="/text-to-video"
               className="mt-1 inline-flex text-sm font-semibold text-[#18181b] underline decoration-[#18181b]/35 underline-offset-4 transition-colors hover:text-[#52525b] hover:decoration-[#18181b] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
             >
               {ctaLabel}

@@ -402,7 +402,7 @@ export function ProactivLanding() {
           showAllCategories
         />
         <ProactivWorkflow
-          ctaHref="/text-to-image"
+          ctaHref="/text-to-video"
           ctaLabel={m['proactiv.workflow.cta']()}
           description={m['proactiv.workflow.description']()}
           eyebrow={m['proactiv.workflow.eyebrow']()}

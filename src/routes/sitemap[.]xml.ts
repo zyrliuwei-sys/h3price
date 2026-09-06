@@ -6,7 +6,7 @@ import { baseLocale, localizeUrl } from '@/paraglide/runtime.js';
 const STATIC_PATHS = [
   ...Object.values(h3PageSeo).map((page) => page.path),
   '/pricing',
-  '/text-to-image',
+  '/text-to-video',
   '/privacy-policy',
   '/terms-of-service',
 ];

@@ -4,7 +4,7 @@ import { SITE_URL } from '@/lib/h3-seo';
 export { SITE_URL };
 
 export const DEFAULT_SOCIAL_IMAGE_URL = `${SITE_URL}/proactiv/showcase-videos/neon-dancer.jpg`;
-export const TEXT_TO_IMAGE_SOCIAL_IMAGE_URL = `${SITE_URL}/imgs/image/meigen-2010358364048597154.jpg`;
+export const TEXT_TO_VIDEO_SOCIAL_IMAGE_URL = `${SITE_URL}/imgs/image/meigen-2010358364048597154.jpg`;
 
 export const siteSeo = {
   home: {
@@ -13,10 +13,10 @@ export const siteSeo = {
       'Create cinematic AI video from your ideas with h3price ai. Explore modern video generation workflows built for fast creative direction.',
     path: '/',
   },
-  textToImage: {
-    title: `H3 Max Text to Image Generator | ${envConfigs.app_name}`,
+  textToVideo: {
+    title: `H3 Max Text to Video Generator | ${envConfigs.app_name}`,
     description:
-      'Uncensored AI image editor: turn text into images without filters or restrictions. Free to use, no signup, full creative direction. Try it now.',
-    path: '/text-to-image',
+      'Turn a text prompt into a cinematic H3 Max clip: pick the aspect ratio, resolution and duration, then generate. Free to try, no signup required.',
+    path: '/text-to-video',
   },
 } as const;

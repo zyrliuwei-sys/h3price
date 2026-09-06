@@ -237,7 +237,7 @@ function NavigationItem({
 
   return (
     <Link
-      href={item.href ?? '/text-to-image'}
+      href={item.href ?? '/text-to-video'}
       className={className}
       aria-current={item.active ? 'page' : undefined}
     >

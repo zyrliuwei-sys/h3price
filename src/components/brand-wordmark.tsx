@@ -40,7 +40,7 @@ export function BrandWordmark({
         )}
       >
         <H3PriceLogoMark />
-        <span className="font-[760] tracking-[-0.07em]">h3price</span>
+        <span className="font-[760] tracking-[-0.07em]">price</span>
         <span className="rounded-[0.22em] border border-current/55 px-[0.32em] py-[0.12em] text-[0.58em] font-bold tracking-[0.08em]">
           ai
         </span>

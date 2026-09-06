@@ -56,10 +56,12 @@ export interface ProactivVideoStudioCopy {
   creditPaywallTitle: string;
   creditPaywallDescription: string;
   creditPackOptions: readonly {
+    badgeLabel?: string;
     productId: string;
     price: number;
     planName: string;
     creditsLabel: string;
+    intervalLabel?: string;
   }[];
   checkoutFailedMessage: string;
   downloadVideoLabel: string;
@@ -450,6 +452,10 @@ export function ProactivVideoStudio({
 
   const feedBottomPadding =
     composerInset > 0 ? `${composerInset + 28}px` : undefined;
+  // The video stage hovers a little higher above the composer than the feed
+  // thread does, so the result doesn't crowd the input it just came from.
+  const videoWorkspaceBottomPadding =
+    composerInset > 0 ? `${composerInset + 96}px` : undefined;
   const [motionTask, setMotionTask] = useState<MotionControlTask | null>(null);
   const [imageTask, setImageTask] = useState<GrokImagineImageTask | null>(null);
   const [imageTaskPrompts, setImageTaskPrompts] = useState<
@@ -462,6 +468,7 @@ export function ProactivVideoStudio({
     string | null
   >(null);
   const [selectedVideoPreviewIndex, setSelectedVideoPreviewIndex] = useState(0);
+  const [isVideoPreviewOpen, setIsVideoPreviewOpen] = useState(false);
   const [dismissedTaskId, setDismissedTaskId] = useState<string | null>(null);
   const [retryValues, setRetryValues] =
     useState<ProactivGenerationValues | null>(null);
@@ -624,10 +631,23 @@ export function ProactivVideoStudio({
   const activeVideoPrompt = displayPrompt(
     motionTask?.prompt ?? retryValues?.prompt ?? ''
   );
-  // The right-hand panel is a transient detail view for clicked images.
-  // Closing the image reclaims the workspace; generated videos preview on the
-  // workspace stage instead of this panel.
-  const isPreviewPanelOpen = Boolean(selectedImagePreview);
+  // The right-hand panel is a transient detail view for clicked images and
+  // video clips; closing the preview reclaims the workspace.
+  const isPreviewPanelOpen = Boolean(
+    selectedImagePreview || isVideoPreviewOpen
+  );
+  // The clip loaded in the docked panel. It shares the filmstrip's index, so
+  // switching clips stays in sync from either surface.
+  const videoPreviewClip =
+    hasGeneratedVideo && motionTask
+      ? {
+          downloadUrl: `${H3_MAX_API}?download=1&taskId=${encodeURIComponent(motionTask.id)}&index=${Math.min(selectedVideoPreviewIndex, motionTask.resultUrls.length - 1)}`,
+          task: motionTask,
+          url:
+            motionTask.resultUrls[selectedVideoPreviewIndex] ??
+            motionTask.resultUrls[0]!,
+        }
+      : null;
   // History remains available independently of the transient preview panel, so
   // previously generated images stay above the composer after a preview closes.
   const hasImageHistory = chatTurns.length > 0;
@@ -661,6 +681,7 @@ export function ProactivVideoStudio({
 
     setSelectedImagePreviewId(null);
     setSelectedVideoPreviewIndex(0);
+    setIsVideoPreviewOpen(false);
   }, [motionTask?.id, motionTask?.resultUrls.length, motionTask?.status]);
 
   useEffect(() => {
@@ -722,7 +743,16 @@ export function ProactivVideoStudio({
         ? current
         : [preview, ...current]
     );
+    setIsVideoPreviewOpen(false);
     setSelectedImagePreviewId(preview.id);
+  }, []);
+
+  // Videos play in the docked panel — the workspace stage is only a
+  // hover-preview tile; clicking hands playback over to the panel.
+  const openVideoPreview = useCallback((index: number) => {
+    setSelectedImagePreviewId(null);
+    setSelectedVideoPreviewIndex(index);
+    setIsVideoPreviewOpen(true);
   }, []);
 
   // Every generation API requires a session, so route anonymous visitors to
@@ -731,8 +761,8 @@ export function ProactivVideoStudio({
   const signInForGeneration = (values: ProactivGenerationValues) => {
     const trimmedPrompt = values.prompt.trim();
     const target = trimmedPrompt
-      ? `/text-to-image?prompt=${encodeURIComponent(trimmedPrompt)}`
-      : '/text-to-image';
+      ? `/text-to-video?prompt=${encodeURIComponent(trimmedPrompt)}`
+      : '/text-to-video';
     router.push(`/sign-in?callbackUrl=${encodeURIComponent(target)}`);
   };
 
@@ -752,8 +782,8 @@ export function ProactivVideoStudio({
         // Return to the editor with the draft preserved. The user explicitly
         // sends again after payment, once their newly granted credits arrive.
         redirect: paywallPrompt
-          ? `/text-to-image?prompt=${encodeURIComponent(paywallPrompt)}`
-          : '/text-to-image',
+          ? `/text-to-video?prompt=${encodeURIComponent(paywallPrompt)}`
+          : '/text-to-video',
       }),
     onSuccess: (data) => {
       if (!data.checkout_url) {
@@ -892,6 +922,7 @@ export function ProactivVideoStudio({
     setMotionTask(null);
     setImageTask(null);
     setSelectedVideoPreviewIndex(0);
+    setIsVideoPreviewOpen(false);
     setIsQueued(true);
     setPendingPrompt(values.prompt);
     // ChatGPT-style send: the prompt moves into the thread and the composer
@@ -1005,11 +1036,14 @@ export function ProactivVideoStudio({
         <div className="relative h-full min-w-0 flex-1 overflow-y-auto">
           {hasGeneratedVideo && motionTask ? (
             <VideoResultWorkspace
+              bottomPadding={videoWorkspaceBottomPadding}
               copy={copy}
+              isPreviewPanelOpen={isPreviewPanelOpen}
               prompt={activeVideoPrompt}
               selectedIndex={selectedVideoPreviewIndex}
               task={motionTask}
               onSelect={setSelectedVideoPreviewIndex}
+              onOpenPreview={() => openVideoPreview(selectedVideoPreviewIndex)}
             />
           ) : hasImageHistory || isImageGenerationActive ? (
             <div
@@ -1193,7 +1227,11 @@ export function ProactivVideoStudio({
 
         {isPreviewPanelOpen ? (
           <aside
-            aria-label={copy.imagePreviewTitleLabel}
+            aria-label={
+              selectedImagePreview
+                ? copy.imagePreviewTitleLabel
+                : copy.generatedVideoLabel
+            }
             className="absolute inset-y-0 right-0 z-20 flex w-full flex-col border-l border-white/10 bg-[#101214] pb-[180px] shadow-[-18px_0_44px_rgba(0,0,0,0.32)] sm:pb-[204px] md:static md:w-[26rem] md:shrink-0 md:pb-0"
           >
             {selectedImagePreview ? (
@@ -1273,6 +1311,83 @@ export function ProactivVideoStudio({
                     </div>
                   ) : null}
                 </div>
+              </>
+            ) : videoPreviewClip ? (
+              <>
+                <div className="relative min-h-0 flex-1 overflow-hidden bg-[#08090a]">
+                  <div className="fixed top-2 right-2 z-30 flex items-center gap-1">
+                    <a
+                      href={videoPreviewClip.downloadUrl}
+                      download
+                      className="inline-flex size-8 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                      aria-label={copy.downloadVideoLabel}
+                      title={copy.downloadVideoLabel}
+                    >
+                      <Download className="size-3.5" aria-hidden="true" />
+                    </a>
+                    <a
+                      href={videoPreviewClip.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex size-8 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                      aria-label={copy.openGeneratedVideoLabel}
+                      title={copy.openGeneratedVideoLabel}
+                    >
+                      <ExternalLink className="size-3.5" aria-hidden="true" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setIsVideoPreviewOpen(false)}
+                      className="inline-flex size-8 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                      aria-label={copy.dismissGeneratedVideoLabel}
+                      title={copy.dismissGeneratedVideoLabel}
+                    >
+                      <X className="size-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                  <video
+                    key={videoPreviewClip.url}
+                    src={videoPreviewClip.url}
+                    controls
+                    autoPlay
+                    loop
+                    playsInline
+                    aria-label={copy.generatedVideoLabel}
+                    className="size-full object-contain"
+                  />
+                </div>
+                {videoPreviewClip.task.resultUrls.length > 1 ? (
+                  <div className="shrink-0 border-t border-[#d6e0e7] px-4 py-3">
+                    <div className="flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
+                      {videoPreviewClip.task.resultUrls.map((url, index) => {
+                        const selected = index === selectedVideoPreviewIndex;
+
+                        return (
+                          <button
+                            key={url}
+                            type="button"
+                            onClick={() => setSelectedVideoPreviewIndex(index)}
+                            aria-label={`${copy.openGeneratedVideoLabel} ${index + 1}`}
+                            aria-pressed={selected}
+                            className={`aspect-video h-12 shrink-0 overflow-hidden rounded-lg border-2 bg-black transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] ${
+                              selected
+                                ? 'border-[#c92f68]'
+                                : 'border-transparent hover:border-[#efb0c4]'
+                            }`}
+                          >
+                            <video
+                              src={url}
+                              muted
+                              playsInline
+                              preload="metadata"
+                              className="size-full object-cover"
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
               </>
             ) : (
               <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 bg-[#08090a] p-6 text-center">
@@ -1390,10 +1505,12 @@ export function ProactivVideoStudio({
           title={copy.creditPaywallTitle}
           description={copy.creditPaywallDescription}
           priceOptions={copy.creditPackOptions.map((option) => ({
+            badgeLabel: option.badgeLabel,
             id: option.productId,
             price: option.price,
             planName: option.planName,
             creditsLabel: option.creditsLabel,
+            intervalLabel: option.intervalLabel,
           }))}
           selectedPriceOptionId={selectedCreditPackProductId}
           onSelectPriceOption={setSelectedCreditPackProductId}
@@ -1404,14 +1521,20 @@ export function ProactivVideoStudio({
 }
 
 function VideoResultWorkspace({
+  bottomPadding,
   copy,
+  isPreviewPanelOpen,
   onSelect,
+  onOpenPreview,
   prompt,
   selectedIndex,
   task,
 }: {
+  bottomPadding?: string;
   copy: ProactivVideoStudioCopy;
+  isPreviewPanelOpen: boolean;
   onSelect: (index: number) => void;
+  onOpenPreview: () => void;
   prompt: string;
   selectedIndex: number;
   task: MotionControlTask;
@@ -1421,29 +1544,55 @@ function VideoResultWorkspace({
 
   // The result block docks directly above the composer — newest-at-the-bottom,
   // like the image thread — instead of pinning to the top of the workspace.
+  // With the preview panel docked the scroll column narrows below max-w-7xl,
+  // so the 1.6/0.8 grid would stretch full-width: the small stage floats left
+  // of center while the prompt card pins to the right edge, and the pair no
+  // longer reads as centered over the composer. Capping the workspace brings
+  // the columns back around the composer's shifted center axis.
   return (
     <section
-      className="mx-auto grid min-h-full w-full max-w-7xl content-end gap-5 px-4 pt-6 pb-[180px] sm:px-6 sm:pt-8 sm:pb-[204px] lg:grid-cols-[minmax(0,1.6fr)_minmax(20rem,0.8fr)] lg:items-start xl:gap-7"
+      className={`mx-auto grid min-h-full w-full max-w-7xl content-end gap-5 px-4 pt-6 pb-[180px] sm:px-6 sm:pt-8 sm:pb-[204px] lg:-ml-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(20rem,0.8fr)] lg:items-start xl:gap-7 ${
+        isPreviewPanelOpen ? 'lg:max-w-3xl' : ''
+      }`}
+      style={{ paddingBottom: bottomPadding }}
       aria-label={copy.generatedVideoLabel}
     >
-      <div className="min-w-0 lg:col-start-1 lg:row-start-1">
-        {/* The selected clip takes the main stage; the remaining clips stay
-            beneath it as a selector filmstrip. */}
+      <div className="order-2 min-w-0 lg:col-start-1 lg:row-start-1 lg:self-end">
+        {/* The stage is a hover-preview tile — playback happens in the docked
+            panel once the user clicks. The remaining clips stay beneath it as a
+            selector filmstrip. */}
         {selectedUrl ? (
-          <div className="mx-auto w-fit max-w-full overflow-hidden rounded-[26px] border border-[#e6a34c]/35 bg-[#141619] p-1 shadow-[0_18px_56px_rgba(0,0,0,0.28)]">
+          <button
+            type="button"
+            onClick={onOpenPreview}
+            aria-label={copy.openGeneratedVideoLabel}
+            title={copy.openGeneratedVideoLabel}
+            className={`group relative mx-auto block w-fit max-w-full overflow-hidden rounded-[26px] border border-[#e6a34c]/35 bg-[#141619] p-1 shadow-[0_18px_56px_rgba(0,0,0,0.28)] transition duration-200 hover:border-[#e6a34c]/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e6a34c] ${
+              isPreviewPanelOpen ? '' : 'lg:translate-x-12'
+            }`}
+          >
             <video
               key={selectedUrl}
               src={selectedUrl}
-              controls
-              autoPlay
               muted
               loop
               playsInline
               preload="metadata"
-              aria-label={copy.generatedVideoLabel}
+              onMouseEnter={({ currentTarget }) => {
+                void currentTarget.play().catch(() => undefined);
+              }}
+              onMouseLeave={({ currentTarget }) => {
+                currentTarget.pause();
+                currentTarget.currentTime = 0;
+              }}
               className="max-h-[min(19vh,13rem)] w-auto max-w-full rounded-[22px] bg-black object-contain"
             />
-          </div>
+            <span className="pointer-events-none absolute inset-1 grid place-items-center rounded-[22px] bg-black/30 transition-opacity duration-200 group-hover:opacity-0">
+              <span className="grid size-11 place-items-center rounded-full bg-white/15 text-white shadow-[0_8px_22px_rgba(0,0,0,0.35)] backdrop-blur-sm">
+                <Play className="ml-0.5 size-4" aria-hidden="true" />
+              </span>
+            </span>
+          </button>
         ) : null}
 
         {/* A single clip plays on the stage above — only multi-clip tasks need
@@ -1457,7 +1606,10 @@ function VideoResultWorkspace({
                 <button
                   key={url}
                   type="button"
-                  onClick={() => onSelect(index)}
+                  onClick={() => {
+                    onSelect(index);
+                    onOpenPreview();
+                  }}
                   aria-label={`${copy.openGeneratedVideoLabel} ${index + 1}`}
                   aria-pressed={selected}
                   className={`group relative aspect-video min-w-0 overflow-hidden rounded-xl border bg-black text-left shadow-[0_8px_22px_rgba(0,0,0,0.26)] transition duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e6a34c] ${
@@ -1492,7 +1644,7 @@ function VideoResultWorkspace({
         ) : null}
       </div>
 
-      <aside className="rounded-[26px] border border-[#e6a34c]/35 bg-[#141619] p-1 shadow-[0_18px_56px_rgba(0,0,0,0.28)] lg:col-start-2 lg:row-start-1">
+      <aside className="order-1 rounded-[26px] border border-[#e6a34c]/35 bg-[#141619] p-1 shadow-[0_18px_56px_rgba(0,0,0,0.28)] lg:col-start-2 lg:row-start-1 lg:-ml-6 lg:-translate-y-8">
         <div className="rounded-[22px] border border-white/[0.07] bg-[#0d0f11] p-5 sm:p-6">
           <p className="max-h-[min(42vh,26rem)] overflow-y-auto pr-1 text-sm leading-7 whitespace-pre-wrap text-neutral-200 sm:text-[15px]">
             {prompt || '—'}
