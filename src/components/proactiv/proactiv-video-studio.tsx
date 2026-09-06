@@ -624,8 +624,9 @@ export function ProactivVideoStudio({
   const activeVideoPrompt = displayPrompt(
     motionTask?.prompt ?? retryValues?.prompt ?? ''
   );
-  // The preview is a transient detail panel. Closing its current asset should
-  // reclaim the workspace rather than leaving an empty panel behind.
+  // The right-hand panel is a transient detail view for clicked images.
+  // Closing the image reclaims the workspace; generated videos preview on the
+  // workspace stage instead of this panel.
   const isPreviewPanelOpen = Boolean(selectedImagePreview);
   // History remains available independently of the transient preview panel, so
   // previously generated images stay above the composer after a preview closes.
@@ -1294,13 +1295,15 @@ export function ProactivVideoStudio({
           }`}
         >
           {/* The composer receives the space released when the sidebar collapses. */}
-          <div className="mx-auto w-full max-w-[min(1240px,calc(1024px+14rem-var(--app-sidebar-width,0rem)))]">
+          <div className="mx-auto w-full max-w-[min(896px,calc(1024px+14rem-var(--app-sidebar-width,0rem)))]">
             <div className="relative min-w-0 overflow-hidden rounded-[28px] border border-[#e6a34c]/55 bg-[#141619]/95 p-1.5 shadow-[0_24px_72px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.1)] ring-1 ring-white/[0.08] backdrop-blur-xl sm:p-2">
               <div
                 aria-hidden="true"
                 className="pointer-events-none absolute top-0 left-[12%] h-px w-[76%] bg-[#e6a34c]/75"
               />
-              <div className="relative flex items-center justify-between gap-3 px-3 pt-1.5 pb-2 sm:px-4 sm:pt-2">
+              {/* Collapse toggle is mobile-only; the row itself hides on md+ so
+                  it doesn't pad the panel with empty space. */}
+              <div className="relative flex items-center justify-between gap-3 px-3 pt-1.5 pb-2 sm:px-4 sm:pt-2 md:hidden">
                 <button
                   type="button"
                   onClick={() => setIsComposerOpen((open) => !open)}
@@ -1416,99 +1419,84 @@ function VideoResultWorkspace({
   const selectedUrl =
     task.resultUrls[selectedIndex] ?? task.resultUrls[0] ?? null;
 
+  // The result block docks directly above the composer — newest-at-the-bottom,
+  // like the image thread — instead of pinning to the top of the workspace.
   return (
     <section
-      className="mx-auto grid w-full max-w-7xl gap-5 px-4 pt-6 pb-[180px] sm:px-6 sm:pt-8 sm:pb-[204px] lg:grid-cols-[minmax(0,1.6fr)_minmax(20rem,0.8fr)] lg:items-start xl:gap-7"
+      className="mx-auto grid min-h-full w-full max-w-7xl content-end gap-5 px-4 pt-6 pb-[180px] sm:px-6 sm:pt-8 sm:pb-[204px] lg:grid-cols-[minmax(0,1.6fr)_minmax(20rem,0.8fr)] lg:items-start xl:gap-7"
       aria-label={copy.generatedVideoLabel}
     >
-      <div className="min-w-0">
-        <div className="mb-4 flex items-center justify-between gap-3 px-1">
-          <div>
-            <p className="text-[10px] font-semibold tracking-[0.16em] text-[#e6a34c] uppercase">
-              {copy.generatedVideoLabel}
-            </p>
-            <p className="mt-1 text-xs text-neutral-500">
-              {task.isArchived
-                ? copy.resultSavedLabel
-                : copy.resultExpirationLabel}
-            </p>
+      <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+        {/* The selected clip takes the main stage; the remaining clips stay
+            beneath it as a selector filmstrip. */}
+        {selectedUrl ? (
+          <div className="mx-auto w-fit max-w-full overflow-hidden rounded-[26px] border border-[#e6a34c]/35 bg-[#141619] p-1 shadow-[0_18px_56px_rgba(0,0,0,0.28)]">
+            <video
+              key={selectedUrl}
+              src={selectedUrl}
+              controls
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-label={copy.generatedVideoLabel}
+              className="max-h-[min(19vh,13rem)] w-auto max-w-full rounded-[22px] bg-black object-contain"
+            />
           </div>
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold tracking-[0.12em] text-neutral-400 uppercase">
-            {task.resultUrls.length}
-          </span>
-        </div>
+        ) : null}
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {task.resultUrls.map((url, index) => {
-            const selected = index === selectedIndex;
+        {/* A single clip plays on the stage above — only multi-clip tasks need
+            a filmstrip to switch between results. */}
+        {task.resultUrls.length > 1 ? (
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {task.resultUrls.map((url, index) => {
+              const selected = index === selectedIndex;
 
-            return (
-              <button
-                key={url}
-                type="button"
-                onClick={() => onSelect(index)}
-                aria-label={`${copy.openGeneratedVideoLabel} ${index + 1}`}
-                aria-pressed={selected}
-                className={`group relative aspect-video min-w-0 overflow-hidden rounded-xl border bg-black text-left shadow-[0_8px_22px_rgba(0,0,0,0.26)] transition duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e6a34c] ${
-                  selected
-                    ? 'border-[#e6a34c] ring-1 ring-[#e6a34c]/50'
-                    : 'border-white/10 hover:border-white/35'
-                }`}
-              >
-                <video
-                  src={url}
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                  onMouseEnter={({ currentTarget }) => {
-                    void currentTarget.play().catch(() => undefined);
-                  }}
-                  onMouseLeave={({ currentTarget }) => {
-                    currentTarget.pause();
-                    currentTarget.currentTime = 0;
-                  }}
-                  className="size-full object-cover transition duration-300 group-hover:scale-[1.035]"
-                />
-                <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/80 to-transparent px-2.5 pt-7 pb-2 text-[10px] font-semibold tracking-[0.12em] text-white uppercase">
-                  <span>{String(index + 1).padStart(2, '0')}</span>
-                  <span className="size-1.5 rounded-full bg-[#e6a34c] shadow-[0_0_10px_rgba(230,163,76,0.9)]" />
-                </span>
-              </button>
-            );
-          })}
-        </div>
+              return (
+                <button
+                  key={url}
+                  type="button"
+                  onClick={() => onSelect(index)}
+                  aria-label={`${copy.openGeneratedVideoLabel} ${index + 1}`}
+                  aria-pressed={selected}
+                  className={`group relative aspect-video min-w-0 overflow-hidden rounded-xl border bg-black text-left shadow-[0_8px_22px_rgba(0,0,0,0.26)] transition duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e6a34c] ${
+                    selected
+                      ? 'border-[#e6a34c] ring-1 ring-[#e6a34c]/50'
+                      : 'border-white/10 hover:border-white/35'
+                  }`}
+                >
+                  <video
+                    src={url}
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    onMouseEnter={({ currentTarget }) => {
+                      void currentTarget.play().catch(() => undefined);
+                    }}
+                    onMouseLeave={({ currentTarget }) => {
+                      currentTarget.pause();
+                      currentTarget.currentTime = 0;
+                    }}
+                    className="size-full object-cover transition duration-300 group-hover:scale-[1.035]"
+                  />
+                  <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/80 to-transparent px-2.5 pt-7 pb-2 text-[10px] font-semibold tracking-[0.12em] text-white uppercase">
+                    <span>{String(index + 1).padStart(2, '0')}</span>
+                    <span className="size-1.5 rounded-full bg-[#e6a34c] shadow-[0_0_10px_rgba(230,163,76,0.9)]" />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
 
-      <aside className="rounded-[26px] border border-[#e6a34c]/35 bg-[#141619] p-1 shadow-[0_18px_56px_rgba(0,0,0,0.28)]">
+      <aside className="rounded-[26px] border border-[#e6a34c]/35 bg-[#141619] p-1 shadow-[0_18px_56px_rgba(0,0,0,0.28)] lg:col-start-2 lg:row-start-1">
         <div className="rounded-[22px] border border-white/[0.07] bg-[#0d0f11] p-5 sm:p-6">
-          <p className="text-[10px] font-semibold tracking-[0.16em] text-[#e6a34c] uppercase">
-            {copy.promptLabel}
-          </p>
-          <p className="mt-4 max-h-[min(42vh,26rem)] overflow-y-auto pr-1 text-sm leading-7 whitespace-pre-wrap text-neutral-200 sm:text-[15px]">
+          <p className="max-h-[min(42vh,26rem)] overflow-y-auto pr-1 text-sm leading-7 whitespace-pre-wrap text-neutral-200 sm:text-[15px]">
             {prompt || '—'}
           </p>
-
-          {selectedUrl ? (
-            <div className="mt-6 flex flex-wrap gap-2 border-t border-white/10 pt-4">
-              <a
-                href={`${H3_MAX_API}?download=1&taskId=${encodeURIComponent(task.id)}&index=${selectedIndex}`}
-                className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-black transition hover:bg-[#f6d7a6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e6a34c]"
-              >
-                <Download className="size-3.5" aria-hidden="true" />
-                {copy.downloadVideoLabel}
-              </a>
-              <a
-                href={selectedUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-neutral-200 transition hover:border-white/35 hover:bg-white/[0.06] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e6a34c]"
-              >
-                <ExternalLink className="size-3.5" aria-hidden="true" />
-                {copy.openGeneratedVideoLabel}
-              </a>
-            </div>
-          ) : null}
         </div>
       </aside>
     </section>

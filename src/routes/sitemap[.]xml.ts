@@ -3,7 +3,13 @@ import { createFileRoute } from '@tanstack/react-router';
 import { h3PageSeo, SITE_URL } from '@/lib/h3-seo';
 import { baseLocale, localizeUrl } from '@/paraglide/runtime.js';
 
-const STATIC_PATHS = Object.values(h3PageSeo).map((page) => page.path);
+const STATIC_PATHS = [
+  ...Object.values(h3PageSeo).map((page) => page.path),
+  '/pricing',
+  '/text-to-image',
+  '/privacy-policy',
+  '/terms-of-service',
+];
 
 type Entry = {
   path: string;

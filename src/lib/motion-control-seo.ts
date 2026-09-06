@@ -1,3 +1,4 @@
+import { envConfigs } from '@/config';
 import { SITE_URL } from '@/lib/h3-seo';
 
 export { SITE_URL };
@@ -13,7 +14,7 @@ export const siteSeo = {
     path: '/',
   },
   textToImage: {
-    title: 'Uncensored AI Image Editor - Free Text to Image Generator',
+    title: `H3 Max Text to Image Generator | ${envConfigs.app_name}`,
     description:
       'Uncensored AI image editor: turn text into images without filters or restrictions. Free to use, no signup, full creative direction. Try it now.',
     path: '/text-to-image',

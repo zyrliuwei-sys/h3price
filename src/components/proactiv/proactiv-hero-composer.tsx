@@ -579,7 +579,7 @@ export function ProactivHeroComposer({
                             : references.length
                               ? 'border-[#efb0c4] bg-[#fde3ec] text-[#c92f68] hover:bg-[#f9ccd9]'
                               : 'border-[#efbed0] bg-white text-[#c92f68] hover:bg-[#fff5f8] hover:text-[#a62150]'
-                        } ${compactAction ? 'size-10' : 'size-12'}`}
+                        } size-10`}
                         aria-label={labels.addReference}
                         title={
                           references.length
@@ -587,10 +587,7 @@ export function ProactivHeroComposer({
                             : labels.addReference
                         }
                       >
-                        <ImagePlus
-                          className={compactAction ? 'size-4.5' : 'size-5'}
-                          aria-hidden="true"
-                        />
+                        <ImagePlus className="size-4.5" aria-hidden="true" />
                         {references.length ? (
                           <span
                             className={`absolute -top-1.5 -right-1.5 grid size-4 place-items-center rounded-full text-[9px] font-bold shadow-sm ${
@@ -632,16 +629,14 @@ export function ProactivHeroComposer({
                       setHasRequestedGeneration(false);
                     }}
                     placeholder={labels.placeholder}
-                    className={`block w-full flex-1 resize-none bg-transparent py-1 pr-1 outline-none ${
-                      compactAction ? 'pl-16' : 'pl-[4.5rem]'
-                    } ${
+                    className={`block w-full flex-1 resize-none bg-transparent py-1 pr-1 pl-16 outline-none ${
                       isConsoleAppearance
                         ? 'text-neutral-100 placeholder:text-neutral-500'
                         : 'text-[#15202b] placeholder:text-[#7b8995]'
                     } ${
                       compactAction
                         ? 'min-h-10 text-sm leading-5 sm:text-base'
-                        : 'min-h-28 text-sm leading-5'
+                        : 'min-h-20 text-sm leading-5'
                     } ${references.length ? 'mt-2' : ''}`}
                   />
                 </div>
