@@ -153,7 +153,7 @@ export function ProactivReferenceLanding() {
 
           <div className="relative z-20 mt-12 w-full px-0 sm:mt-16 md:px-12">
             <div className="absolute -inset-x-10 -inset-y-16 -z-10 rounded-[4rem] bg-[radial-gradient(circle_at_50%_0%,rgba(57,195,239,0.18),transparent_53%)] blur-2xl" />
-            <div className="proactiv-reference-console relative mx-auto max-w-5xl rounded-[28px] border-4 border-neutral-900 bg-[#161719] p-1.5 shadow-[0_9px_20px_rgba(0,0,0,0.4),0_37px_37px_rgba(0,0,0,0.32),0_84px_50px_rgba(0,0,0,0.2)] md:p-2">
+            <div className="proactiv-reference-console relative mx-auto max-w-3xl rounded-[28px] border-4 border-neutral-900 bg-[#161719] p-1.5 shadow-[0_9px_20px_rgba(0,0,0,0.4),0_37px_37px_rgba(0,0,0,0.32),0_84px_50px_rgba(0,0,0,0.2)] md:p-2">
               <div className="absolute top-0 left-[12%] h-px w-2/3 bg-gradient-to-r from-transparent via-cyan-300 to-transparent" />
               <div className="rounded-[18px] border border-white/10 bg-[#0e1011] p-2 sm:p-3">
                 <div id="proactiv-reference-composer" className="scroll-mt-24">
@@ -162,6 +162,7 @@ export function ProactivReferenceLanding() {
                     appearance="console"
                     allowVideoMode={false}
                     compactAction
+                    compactHeight
                     labels={composerLabels()}
                     requireReferences={false}
                     onGenerate={(values) => {
@@ -180,7 +181,7 @@ export function ProactivReferenceLanding() {
 
         <section className="relative overflow-hidden px-5 pt-16 sm:px-8 md:pt-24">
           <AmbientLight />
-          <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center justify-between gap-12 md:flex-row md:items-start">
+          <div className="relative z-10 mx-auto flex max-w-6xl flex-col items-center justify-between gap-12 md:flex-row md:items-start">
             <div className="max-w-xl text-center md:text-left">
               <h2 className="text-3xl font-bold tracking-[-0.045em] text-white md:text-4xl">
                 {m['reference.cta.title']()}

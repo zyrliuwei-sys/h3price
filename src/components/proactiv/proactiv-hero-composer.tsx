@@ -68,6 +68,7 @@ export interface ProactivHeroComposerProps {
   allowTextToImageMode?: boolean;
   allowVideoMode?: boolean;
   compactAction?: boolean;
+  compactHeight?: boolean;
   compactContentInset?: boolean;
   compactGenerateAction?: boolean;
   restoreLandingDraft?: boolean;
@@ -150,6 +151,7 @@ export function ProactivHeroComposer({
   allowTextToImageMode = true,
   allowVideoMode = true,
   compactAction = false,
+  compactHeight = false,
   compactContentInset = false,
   compactGenerateAction = false,
   restoreLandingDraft = false,
@@ -578,7 +580,7 @@ export function ProactivHeroComposer({
               isConsoleAppearance ? 'bg-transparent' : 'bg-[#fff1f5]'
             } ${
               compactAction
-                ? `min-h-[172px] ${
+                ? `${compactHeight ? 'min-h-[140px]' : 'min-h-[172px]'} ${
                     isConsoleAppearance
                       ? 'p-0 sm:p-1'
                       : 'rounded-[20px] p-2 sm:p-2.5'
@@ -589,7 +591,11 @@ export function ProactivHeroComposer({
             <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row">
               <div
                 className={`flex min-w-0 flex-1 flex-col ${
-                  compactAction ? 'min-h-32' : 'min-h-20'
+                  compactAction
+                    ? compactHeight
+                      ? 'min-h-24'
+                      : 'min-h-32'
+                    : 'min-h-20'
                 } ${compactAction && compactContentInset ? 'sm:ml-6' : ''}`}
               >
                 <label className="sr-only" htmlFor="hero-marketing-prompt">
@@ -743,7 +749,11 @@ export function ProactivHeroComposer({
 
                 <div
                   className={`flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-                    compactAction ? 'mt-auto translate-y-7' : 'mt-2.5'
+                    compactAction
+                      ? compactHeight
+                        ? 'mt-auto translate-y-9 [&>button]:bg-transparent [&>span]:bg-transparent'
+                        : 'mt-auto translate-y-7'
+                      : 'mt-2.5'
                   }`}
                 >
                   {hasMultipleModels ? (
@@ -819,7 +829,7 @@ export function ProactivHeroComposer({
                       ? 'mr-0 ml-auto size-14 self-end'
                       : 'mr-0 ml-auto size-14 self-end'
                     : 'h-14 sm:w-[232px]'
-                } ${compactAction ? 'translate-y-7' : ''}`}
+                } ${compactAction ? (compactHeight ? 'translate-y-9' : 'translate-y-7') : ''}`}
               >
                 <button
                   type="button"
@@ -838,7 +848,9 @@ export function ProactivHeroComposer({
                   } ${
                     useCompactGenerateAction
                       ? isConsoleAppearance
-                        ? 'size-full flex-none rounded-[14px] border border-white/70 bg-white p-0 shadow-[inset_0_-3px_0_rgba(148,163,184,0.48)] disabled:border-white/10 disabled:bg-white/10 disabled:text-white/40'
+                        ? compactHeight
+                          ? 'size-full flex-none rounded-[14px] border border-white/15 bg-transparent p-0 text-neutral-200 shadow-none disabled:text-neutral-500'
+                          : 'size-full flex-none rounded-[14px] border border-white/70 bg-white p-0 shadow-[inset_0_-3px_0_rgba(148,163,184,0.48)] disabled:border-white/10 disabled:bg-white/10 disabled:text-white/40'
                         : 'size-full flex-none rounded-[18px] border border-white/65 bg-[#c92f68] p-0 shadow-[inset_0_-4px_0_#9f1f50,0_8px_18px_rgba(201,47,104,0.32)]'
                       : isConsoleAppearance
                         ? 'min-w-[112px] flex-1 rounded-xl bg-white shadow-[inset_0_-3px_0_rgba(148,163,184,0.48)] disabled:bg-white/10 disabled:text-white/40'

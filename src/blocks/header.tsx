@@ -1,3 +1,4 @@
+import { m } from '@/paraglide/messages.js';
 import { SiteHeader } from '@/components/site-header';
 
 export function Header() {
@@ -7,7 +8,7 @@ export function Header() {
     { href: '/prompt-generator', label: 'Prompt Generator' },
     { href: '/text-to-video', label: 'Text to Video' },
     { href: '/vs/veo-3-1', label: 'H3 Max vs Veo 3.1' },
-    { href: '/pricing', label: 'Plans' },
+    { href: '/pricing', label: m['landing.nav.pricing']() },
   ];
 
   return (
