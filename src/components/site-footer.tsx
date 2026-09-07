@@ -21,15 +21,24 @@ export interface FooterSocial {
   label: string;
 }
 
+export interface FooterBadge {
+  href: string;
+  src: string;
+  alt: string;
+  width?: number;
+}
+
 export function SiteFooter({
   tagline,
   columns,
   socials,
+  badge,
   copyright,
 }: {
   tagline?: string;
   columns?: FooterColumn[];
   socials?: FooterSocial[];
+  badge?: FooterBadge;
   copyright?: string;
 }) {
   const year = new Date().getFullYear();
@@ -121,6 +130,22 @@ export function SiteFooter({
             {copyright ||
               `© ${year} ${envConfigs.app_name}. All rights reserved.`}
           </span>
+          {badge ? (
+            <a
+              href={badge.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 transition-opacity hover:opacity-80"
+            >
+              <img
+                src={badge.src}
+                alt={badge.alt}
+                width={badge.width ?? 250}
+                className="h-auto w-[140px] sm:w-[180px]"
+                loading="lazy"
+              />
+            </a>
+          ) : null}
           <LocaleSelector
             variant="pill"
             className="border-neutral-700 text-neutral-300 hover:bg-white/5 hover:text-[#f5b65e]"

@@ -9,9 +9,7 @@ import { envConfigs } from '@/config';
 import { cn } from '@/lib/utils';
 import { m } from '@/paraglide/messages.js';
 import { BrandWordmark } from '@/components/brand-wordmark';
-import { LocaleSelector } from '@/components/locale-selector';
 import { SiteUserMenu } from '@/components/site-user-menu';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { buttonVariants } from '@/components/ui/button';
 
 export interface NavLink {
@@ -43,9 +41,6 @@ export function SiteHeader({
       ? 'text-[#b9b5ae] hover:text-[#f5b65e]'
       : 'text-muted-foreground hover:text-foreground'
   );
-  const iconActionClass = isCinemaTone
-    ? 'text-[#cbc5bb] hover:bg-white/[0.07] hover:text-[#f5b65e]'
-    : undefined;
   const primaryActionClass = cn(
     buttonVariants(),
     isCinemaTone
@@ -112,8 +107,6 @@ export function SiteHeader({
 
         {/* Desktop actions */}
         <div className="hidden items-center gap-3 md:flex">
-          <LocaleSelector className={iconActionClass} />
-          <ThemeToggle className={iconActionClass} />
           {user ? (
             <SiteUserMenu
               name={user.name || 'User'}
@@ -192,8 +185,6 @@ export function SiteHeader({
               isCinemaTone ? 'border-white/[0.09]' : 'border-border'
             )}
           >
-            <LocaleSelector className={iconActionClass} />
-            <ThemeToggle className={iconActionClass} />
             <div className="flex-1" />
             {user ? (
               <SiteUserMenu

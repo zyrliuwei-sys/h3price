@@ -1544,20 +1544,29 @@ function VideoResultWorkspace({
 
   // The result block docks directly above the composer — newest-at-the-bottom,
   // like the image thread — instead of pinning to the top of the workspace.
-  // With the preview panel docked the scroll column narrows below max-w-7xl,
-  // so the 1.6/0.8 grid would stretch full-width: the small stage floats left
-  // of center while the prompt card pins to the right edge, and the pair no
-  // longer reads as centered over the composer. Capping the workspace brings
-  // the columns back around the composer's shifted center axis.
+  // With the preview panel open the composer docks left of it with symmetric
+  // 1.25rem insets and an 896px cap, so the workspace mirrors that exact box
+  // (px-5 + max-w 56rem of content) and the stage/prompt pair lines up edge to
+  // edge with the composer below. The narrowed column can't fit two columns
+  // below xl, so the pair stacks there — the full-width prompt card keeps the
+  // same alignment as the composer either way.
   return (
     <section
-      className={`mx-auto grid min-h-full w-full max-w-7xl content-end gap-5 px-4 pt-6 pb-[180px] sm:px-6 sm:pt-8 sm:pb-[204px] lg:-ml-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(20rem,0.8fr)] lg:items-start xl:gap-7 ${
-        isPreviewPanelOpen ? 'lg:max-w-3xl' : ''
+      className={`mx-auto grid min-h-full w-full max-w-7xl content-end gap-5 px-4 pt-6 pb-[180px] sm:px-6 sm:pt-8 sm:pb-[204px] lg:items-start xl:gap-7 ${
+        isPreviewPanelOpen
+          ? 'md:max-w-[calc(56rem+2.5rem)] md:px-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(20rem,0.8fr)]'
+          : 'lg:-ml-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(20rem,0.8fr)]'
       }`}
       style={{ paddingBottom: bottomPadding }}
       aria-label={copy.generatedVideoLabel}
     >
-      <div className="order-2 min-w-0 lg:col-start-1 lg:row-start-1 lg:self-end">
+      <div
+        className={`order-2 min-w-0 ${
+          isPreviewPanelOpen
+            ? 'xl:col-start-1 xl:row-start-1 xl:self-end'
+            : 'lg:col-start-1 lg:row-start-1 lg:self-end'
+        }`}
+      >
         {/* The stage is a hover-preview tile — playback happens in the docked
             panel once the user clicks. The remaining clips stay beneath it as a
             selector filmstrip. */}
@@ -1644,7 +1653,13 @@ function VideoResultWorkspace({
         ) : null}
       </div>
 
-      <aside className="order-1 rounded-[26px] border border-[#e6a34c]/35 bg-[#141619] p-1 shadow-[0_18px_56px_rgba(0,0,0,0.28)] lg:col-start-2 lg:row-start-1 lg:-ml-6 lg:-translate-y-8">
+      <aside
+        className={`order-1 rounded-[26px] border border-[#e6a34c]/35 bg-[#141619] p-1 shadow-[0_18px_56px_rgba(0,0,0,0.28)] ${
+          isPreviewPanelOpen
+            ? 'xl:col-start-2 xl:row-start-1'
+            : 'lg:col-start-2 lg:row-start-1 lg:-ml-6 lg:-translate-y-8'
+        }`}
+      >
         <div className="rounded-[22px] border border-white/[0.07] bg-[#0d0f11] p-5 sm:p-6">
           <p className="max-h-[min(42vh,26rem)] overflow-y-auto pr-1 text-sm leading-7 whitespace-pre-wrap text-neutral-200 sm:text-[15px]">
             {prompt || '—'}
