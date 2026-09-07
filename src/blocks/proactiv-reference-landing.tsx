@@ -20,6 +20,7 @@ import {
   FAL_H3_MODEL_URL,
   REGULAR,
 } from '@/lib/pricing';
+import { saveVideoComposerDraft } from '@/lib/video-composer-draft';
 import { m } from '@/paraglide/messages.js';
 import { Footer } from '@/blocks/footer';
 import { H3Tools } from '@/blocks/h3/tools';
@@ -49,6 +50,8 @@ function parseRecords(value: string): ReferenceRecord[] {
 
 const composerLabels = (): ProactivHeroComposerLabels => ({
   addReference: m['proactiv.hero.composer.add_reference'](),
+  firstFrame: m['proactiv.hero.composer.first_frame'](),
+  lastFrame: m['proactiv.hero.composer.last_frame'](),
   aspectRatio: m['proactiv.hero.composer.aspect_ratio'](),
   avatar: m['proactiv.hero.composer.avatar'](),
   duration: m['proactiv.hero.composer.duration'](),
@@ -155,12 +158,15 @@ export function ProactivReferenceLanding() {
               <div className="rounded-[18px] border border-white/10 bg-[#0e1011] p-2 sm:p-3">
                 <div id="proactiv-reference-composer" className="scroll-mt-24">
                   <ProactivHeroComposer
+                    enableFrameInputs
                     appearance="console"
                     allowVideoMode={false}
                     compactAction
                     labels={composerLabels()}
                     requireReferences={false}
-                    onGenerate={({ prompt }) => {
+                    onGenerate={(values) => {
+                      saveVideoComposerDraft(values);
+                      const { prompt } = values;
                       router.push(
                         `/text-to-video?prompt=${encodeURIComponent(prompt)}`
                       );

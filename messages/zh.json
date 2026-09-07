@@ -1188,5 +1188,7 @@
   "auth.meta.forgot-password": "找回密码",
   "auth.meta.reset-password": "设置新密码",
   "auth.meta.auth-callback": "完成登录",
-  "auth.meta.redeem-invite": "兑换邀请"
+  "auth.meta.redeem-invite": "兑换邀请",
+  "proactiv.hero.composer.first_frame": "首帧",
+  "proactiv.hero.composer.last_frame": "尾帧"
 }

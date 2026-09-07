@@ -16,6 +16,7 @@ import {
   h3MaxModelForMode,
   listFalH3MaxTasks,
   submitFalH3MaxTask,
+  validateFalH3MaxInput,
   type FalH3MaxInput,
   type FalH3MaxMode,
   type FalH3MaxResolution,
@@ -108,6 +109,7 @@ async function POST({ request }: { request: Request }) {
     if (limited) return limited;
 
     const input = parseInput(await request.json().catch(() => ({})));
+    validateFalH3MaxInput(input);
     const apiKey = await configuredApiKey();
     const model = h3MaxModelForMode(input.mode);
     const billingTask = await createTask({

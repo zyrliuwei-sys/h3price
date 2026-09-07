@@ -230,7 +230,11 @@ export function validateFalH3MaxInput(input: FalH3MaxInput) {
 
   const imageUrls = input.imageUrls ?? [];
   const videoUrls = input.videoUrls ?? [];
-  if (![...imageUrls, ...videoUrls].every(isPublicHttpsUrl)) {
+  if (
+    ![...imageUrls, ...videoUrls].every((url) =>
+      Boolean(normalizePublicHttpsUrl(url))
+    )
+  ) {
     throw new Error('Reference files must use public HTTPS URLs');
   }
 
@@ -242,8 +246,10 @@ export function validateFalH3MaxInput(input: FalH3MaxInput) {
   }
 
   if (input.mode === 'image-to-video') {
-    if (imageUrls.length !== 1 || videoUrls.length) {
-      throw new Error('Image-to-video requires exactly one reference image');
+    if (imageUrls.length < 1 || imageUrls.length > 2 || videoUrls.length) {
+      throw new Error(
+        'Image-to-video requires one first frame and an optional last frame'
+      );
     }
     return;
   }
@@ -281,7 +287,11 @@ export function toFalH3MaxOptions(input: FalH3MaxInput) {
   };
 
   if (input.mode === 'image-to-video') {
-    return { ...common, image_url: input.imageUrls![0] };
+    return {
+      ...common,
+      image_url: input.imageUrls![0],
+      ...(input.imageUrls?.[1] ? { end_image_url: input.imageUrls[1] } : {}),
+    };
   }
   if (input.mode === 'reference-to-video') {
     return {

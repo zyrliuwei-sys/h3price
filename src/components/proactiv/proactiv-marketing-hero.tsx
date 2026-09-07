@@ -1,4 +1,5 @@
 import { useRouter } from '@/core/i18n/navigation';
+import { saveVideoComposerDraft } from '@/lib/video-composer-draft';
 import {
   ProactivHeroComposer,
   type ProactivHeroComposerLabels,
@@ -25,6 +26,8 @@ export function ProactivMarketingHero({
   title = 'Direct Every Frame with uncensored ai',
   composerLabels = {
     addReference: 'Add reference',
+    firstFrame: 'First frame',
+    lastFrame: 'Last frame',
     aspectRatio: 'Aspect ratio',
     avatar: 'Avatar',
     duration: 'Duration',
@@ -61,11 +64,14 @@ export function ProactivMarketingHero({
       <div className="relative bg-[#fff8fa] px-4 py-8 sm:px-6 sm:py-10">
         <div className="mx-auto flex w-full max-w-[1440px] justify-center">
           <ProactivHeroComposer
+            enableFrameInputs
             allowVideoMode={false}
             compactAction
             labels={{ ...composerLabels, generate: openEditorLabel }}
             requireReferences={false}
-            onGenerate={({ prompt }) => {
+            onGenerate={(values) => {
+              saveVideoComposerDraft(values);
+              const { prompt } = values;
               router.push(
                 `/text-to-video?prompt=${encodeURIComponent(prompt)}`
               );

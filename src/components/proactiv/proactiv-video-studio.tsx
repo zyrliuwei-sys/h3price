@@ -26,6 +26,7 @@ import {
 } from '@/components/payment-provider-modal';
 import {
   ProactivHeroComposer,
+  type ProactivGenerationReference,
   type ProactivGenerationValues,
   type ProactivHeroComposerLabels,
 } from '@/components/proactiv/proactiv-hero-composer';
@@ -851,7 +852,7 @@ export function ProactivVideoStudio({
           duration: values.duration,
           imageUrls,
           mode:
-            values.mode === 'edit' && imageUrls.length === 1
+            values.mode === 'edit' && imageUrls.length <= 2
               ? 'image-to-video'
               : 'reference-to-video',
           prompt,
@@ -938,11 +939,12 @@ export function ProactivVideoStudio({
 
   // Regenerate a turn through the H3 Max text-to-video endpoint. Reference
   // files from earlier submissions are intentionally not reused.
-  function regenerateFromTurn(turn: StudioChatTurn) {
+  function regenerateFromTurn(turn: Pick<StudioChatTurn, 'prompt'>) {
     if (generationMutation.isPending) return;
     startGeneration({
       aspectRatio: retryValues?.aspectRatio ?? '9:16',
       batchSize: 1,
+      duration: retryValues?.duration ?? 5,
       mode: 'text',
       prompt: turn.prompt,
       references: [],
@@ -951,7 +953,7 @@ export function ProactivVideoStudio({
     });
   }
 
-  function editPromptFromTurn(turn: StudioChatTurn) {
+  function editPromptFromTurn(turn: Pick<StudioChatTurn, 'prompt'>) {
     const nextPrompt = displayPrompt(turn.prompt);
     if (!nextPrompt) return;
 
@@ -1040,6 +1042,14 @@ export function ProactivVideoStudio({
               copy={copy}
               isPreviewPanelOpen={isPreviewPanelOpen}
               prompt={activeVideoPrompt}
+              isRegenerating={generationMutation.isPending}
+              onRegenerate={() => {
+                if (retryValues) retryGeneration();
+                else regenerateFromTurn({ prompt: motionTask.prompt });
+              }}
+              onEditPrompt={() =>
+                editPromptFromTurn({ prompt: activeVideoPrompt })
+              }
               selectedIndex={selectedVideoPreviewIndex}
               task={motionTask}
               onSelect={setSelectedVideoPreviewIndex}
@@ -1411,11 +1421,7 @@ export function ProactivVideoStudio({
         >
           {/* The composer receives the space released when the sidebar collapses. */}
           <div className="mx-auto w-full max-w-[min(896px,calc(1024px+14rem-var(--app-sidebar-width,0rem)))]">
-            <div className="relative min-w-0 overflow-hidden rounded-[28px] border border-[#e6a34c]/55 bg-[#141619]/95 p-1.5 shadow-[0_24px_72px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.1)] ring-1 ring-white/[0.08] backdrop-blur-xl sm:p-2">
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute top-0 left-[12%] h-px w-[76%] bg-[#e6a34c]/75"
-              />
+            <div className="relative min-w-0 overflow-hidden rounded-[28px] border border-[#e6a34c]/55 bg-[#141619]/95 p-1.5 shadow-[0_24px_72px_rgba(0,0,0,0.68)] ring-1 ring-white/[0.08] backdrop-blur-xl sm:p-2">
               {/* Collapse toggle is mobile-only; the row itself hides on md+ so
                   it doesn't pad the panel with empty space. */}
               <div className="relative flex items-center justify-between gap-3 px-3 pt-1.5 pb-2 sm:px-4 sm:pt-2 md:hidden">
@@ -1475,6 +1481,8 @@ export function ProactivVideoStudio({
                     avatar: copy.referenceImageLabel,
                     product: copy.referenceVideoLabel,
                   }}
+                  restoreLandingDraft
+                  enableFrameInputs
                   maxImageReferences={maximumImageReferenceCount}
                   promptValue={prompt}
                   referenceImageToAdd={referenceImageToAdd}
@@ -1524,6 +1532,9 @@ function VideoResultWorkspace({
   bottomPadding,
   copy,
   isPreviewPanelOpen,
+  isRegenerating,
+  onRegenerate,
+  onEditPrompt,
   onSelect,
   onOpenPreview,
   prompt,
@@ -1533,6 +1544,9 @@ function VideoResultWorkspace({
   bottomPadding?: string;
   copy: ProactivVideoStudioCopy;
   isPreviewPanelOpen: boolean;
+  isRegenerating: boolean;
+  onRegenerate: () => void;
+  onEditPrompt: () => void;
   onSelect: (index: number) => void;
   onOpenPreview: () => void;
   prompt: string;
@@ -1552,16 +1566,16 @@ function VideoResultWorkspace({
   // same alignment as the composer either way.
   return (
     <section
-      className={`mx-auto grid min-h-full w-full max-w-7xl content-end gap-5 px-4 pt-6 pb-[180px] sm:px-6 sm:pt-8 sm:pb-[204px] lg:items-start xl:gap-7 ${
+      className={`mx-auto grid min-h-full w-full max-w-7xl content-end gap-5 px-4 pt-6 pb-[180px] sm:px-6 sm:pt-8 sm:pb-[204px] md:max-w-[calc(min(896px,1024px+14rem-var(--app-sidebar-width,0rem))+2.5rem)] md:px-5 lg:items-start xl:gap-7 ${
         isPreviewPanelOpen
-          ? 'md:max-w-[calc(56rem+2.5rem)] md:px-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(20rem,0.8fr)]'
-          : 'lg:-ml-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(20rem,0.8fr)]'
+          ? 'xl:grid-cols-[minmax(0,1.2fr)_minmax(24rem,1fr)]'
+          : 'lg:grid-cols-[minmax(0,1.2fr)_minmax(24rem,1fr)]'
       }`}
       style={{ paddingBottom: bottomPadding }}
       aria-label={copy.generatedVideoLabel}
     >
       <div
-        className={`order-2 min-w-0 ${
+        className={`relative order-2 min-w-0 ${
           isPreviewPanelOpen
             ? 'xl:col-start-1 xl:row-start-1 xl:self-end'
             : 'lg:col-start-1 lg:row-start-1 lg:self-end'
@@ -1576,8 +1590,8 @@ function VideoResultWorkspace({
             onClick={onOpenPreview}
             aria-label={copy.openGeneratedVideoLabel}
             title={copy.openGeneratedVideoLabel}
-            className={`group relative mx-auto block w-fit max-w-full overflow-hidden rounded-[26px] border border-[#e6a34c]/35 bg-[#141619] p-1 shadow-[0_18px_56px_rgba(0,0,0,0.28)] transition duration-200 hover:border-[#e6a34c]/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e6a34c] ${
-              isPreviewPanelOpen ? '' : 'lg:translate-x-12'
+            className={`group relative mx-auto block w-fit max-w-full overflow-hidden rounded-xl bg-black transition duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e6a34c] ${
+              isPreviewPanelOpen ? 'xl:mx-0' : 'lg:mx-0'
             }`}
           >
             <video
@@ -1594,15 +1608,34 @@ function VideoResultWorkspace({
                 currentTarget.pause();
                 currentTarget.currentTime = 0;
               }}
-              className="max-h-[min(19vh,13rem)] w-auto max-w-full rounded-[22px] bg-black object-contain"
+              className="max-h-[min(19vh,13rem)] w-auto max-w-full rounded-xl bg-black object-contain"
             />
-            <span className="pointer-events-none absolute inset-1 grid place-items-center rounded-[22px] bg-black/30 transition-opacity duration-200 group-hover:opacity-0">
+            <span className="pointer-events-none absolute inset-0 grid place-items-center rounded-xl bg-black/30 transition-opacity duration-200 group-hover:opacity-0">
               <span className="grid size-11 place-items-center rounded-full bg-white/15 text-white shadow-[0_8px_22px_rgba(0,0,0,0.35)] backdrop-blur-sm">
                 <Play className="ml-0.5 size-4" aria-hidden="true" />
               </span>
             </span>
           </button>
         ) : null}
+
+        <div className="absolute top-full left-0 mt-2">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={onRegenerate}
+                  disabled={isRegenerating}
+                  aria-label={copy.regenerateLabel}
+                  className="inline-flex size-8 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e6a34c] disabled:opacity-40"
+                >
+                  <RefreshCw className="size-4" aria-hidden="true" />
+                </button>
+              }
+            />
+            <TooltipContent>{copy.regenerateLabel}</TooltipContent>
+          </Tooltip>
+        </div>
 
         {/* A single clip plays on the stage above — only multi-clip tasks need
             a filmstrip to switch between results. */}
@@ -1654,16 +1687,33 @@ function VideoResultWorkspace({
       </div>
 
       <aside
-        className={`order-1 rounded-[26px] border border-[#e6a34c]/35 bg-[#141619] p-1 shadow-[0_18px_56px_rgba(0,0,0,0.28)] ${
+        className={`relative order-1 rounded-xl bg-[#0d0f11] ${
           isPreviewPanelOpen
-            ? 'xl:col-start-2 xl:row-start-1'
-            : 'lg:col-start-2 lg:row-start-1 lg:-ml-6 lg:-translate-y-8'
+            ? 'xl:col-start-2 xl:row-start-1 xl:-translate-y-48'
+            : 'lg:col-start-2 lg:row-start-1 lg:-translate-y-48'
         }`}
       >
-        <div className="rounded-[22px] border border-white/[0.07] bg-[#0d0f11] p-5 sm:p-6">
+        <div className="rounded-xl px-5 py-3 sm:px-6 sm:py-3">
           <p className="max-h-[min(42vh,26rem)] overflow-y-auto pr-1 text-sm leading-7 whitespace-pre-wrap text-neutral-200 sm:text-[15px]">
             {prompt || '—'}
           </p>
+        </div>
+        <div className="absolute top-full right-0 mt-2">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={onEditPrompt}
+                  aria-label={copy.editPromptLabel}
+                  className="inline-flex size-8 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e6a34c]"
+                >
+                  <PencilLine className="size-4" aria-hidden="true" />
+                </button>
+              }
+            />
+            <TooltipContent>{copy.editPromptLabel}</TooltipContent>
+          </Tooltip>
         </div>
       </aside>
     </section>

@@ -4,10 +4,12 @@ import {
   ChevronDown,
   Clock3,
   ImagePlus,
+  Plus,
   Sparkles,
   X,
 } from 'lucide-react';
 
+import { takeVideoComposerDraft } from '@/lib/video-composer-draft';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +20,8 @@ import {
 
 export interface ProactivHeroComposerLabels {
   addReference: string;
+  firstFrame: string;
+  lastFrame: string;
   aspectRatio: string;
   avatar: string;
   duration: string;
@@ -66,6 +70,8 @@ export interface ProactivHeroComposerProps {
   compactAction?: boolean;
   compactContentInset?: boolean;
   compactGenerateAction?: boolean;
+  restoreLandingDraft?: boolean;
+  enableFrameInputs?: boolean;
   forceTextModeVersion?: number;
   isGenerating?: boolean;
   labels: ProactivHeroComposerLabels;
@@ -146,6 +152,8 @@ export function ProactivHeroComposer({
   compactAction = false,
   compactContentInset = false,
   compactGenerateAction = false,
+  restoreLandingDraft = false,
+  enableFrameInputs = false,
   forceTextModeVersion,
   isGenerating = false,
   labels,
@@ -158,6 +166,7 @@ export function ProactivHeroComposer({
   showReferenceControls = true,
 }: ProactivHeroComposerProps) {
   const isConsoleAppearance = appearance === 'console';
+  const [frameTarget, setFrameTarget] = useState<0 | 1>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<'edit' | 'text' | 'video'>(
     allowTextToImageMode ? 'text' : allowVideoMode ? 'video' : 'edit'
@@ -188,6 +197,7 @@ export function ProactivHeroComposer({
   const imageReferences = references.filter(
     (reference) => reference.type === 'image'
   );
+  const frameInputs = enableFrameInputs && mode !== 'video';
   const hasReachedImageReferenceLimit =
     mode === 'edit' && imageReferences.length >= maxImageReferences;
   const hasRequiredReferences =
@@ -343,6 +353,22 @@ export function ProactivHeroComposer({
     setHasRequestedGeneration(false);
   }, [allowTextToImageMode, allowVideoMode, mode]);
 
+  useEffect(() => {
+    if (!restoreLandingDraft) return;
+    const draft = takeVideoComposerDraft();
+    if (!draft) return;
+    setMode(draft.references.length ? 'edit' : 'text');
+    setAspectRatio(draft.aspectRatio);
+    setResolution(draft.resolution);
+    setDuration(draft.duration);
+    setReferences(
+      draft.references.map((reference) => ({
+        ...reference,
+        previewUrl: URL.createObjectURL(reference.file),
+      }))
+    );
+  }, [restoreLandingDraft]);
+
   const openFilePicker = (slot: ReferenceSlot = null) => {
     setReferenceSlot(slot);
     window.requestAnimationFrame(() => fileInputRef.current?.click());
@@ -377,6 +403,36 @@ export function ProactivHeroComposer({
         : referenceSlot === 'product'
           ? 'video'
           : null;
+    if (frameInputs) {
+      const filesToAdd = Array.from(files)
+        .filter((file) => file.type.startsWith('image/'))
+        .slice(0, frameTarget === 0 ? 2 : 1);
+      if (!filesToAdd.length) return;
+      const added = filesToAdd.map(
+        (file, index): ReferenceAttachment => ({
+          id: `${Date.now()}-${index}-${file.name}`,
+          file,
+          name: file.name,
+          previewUrl: URL.createObjectURL(file),
+          type: 'image',
+        })
+      );
+      setReferences((current) => {
+        const next = [...current];
+        const target = Math.min(frameTarget, next.length);
+        for (let index = 0; index < added.length; index++) {
+          const old = next[target + index];
+          if (old) URL.revokeObjectURL(old.previewUrl);
+          next[target + index] = added[index];
+        }
+        next.slice(2).forEach((item) => URL.revokeObjectURL(item.previewUrl));
+        return next.slice(0, 2);
+      });
+      setMode('edit');
+      setReferenceSlot(null);
+      setHasRequestedGeneration(false);
+      return;
+    }
     const uploaded = Array.from(files)
       .filter((file) =>
         expectedType === 'image'
@@ -559,8 +615,11 @@ export function ProactivHeroComposer({
                       />
                       <button
                         type="button"
-                        disabled={hasReachedImageReferenceLimit}
-                        onClick={() => openFilePicker()}
+                        disabled={!frameInputs && hasReachedImageReferenceLimit}
+                        onClick={() => {
+                          setFrameTarget(0);
+                          openFilePicker();
+                        }}
                         className={`absolute z-10 inline-flex shrink-0 items-center justify-center rounded-xl border transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
                           compactAction ? 'left-0' : 'left-2'
                         } ${
@@ -580,11 +639,15 @@ export function ProactivHeroComposer({
                               ? 'border-[#efb0c4] bg-[#fde3ec] text-[#c92f68] hover:bg-[#f9ccd9]'
                               : 'border-[#efbed0] bg-white text-[#c92f68] hover:bg-[#fff5f8] hover:text-[#a62150]'
                         } size-10`}
-                        aria-label={labels.addReference}
+                        aria-label={
+                          frameInputs ? labels.firstFrame : labels.addReference
+                        }
                         title={
-                          references.length
-                            ? `${labels.addReference} (${imageReferences.length}/${maxImageReferences})`
-                            : labels.addReference
+                          frameInputs
+                            ? labels.firstFrame
+                            : references.length
+                              ? `${labels.addReference} (${imageReferences.length}/${maxImageReferences})`
+                              : labels.addReference
                         }
                       >
                         <ImagePlus className="size-4.5" aria-hidden="true" />
@@ -600,20 +663,57 @@ export function ProactivHeroComposer({
                           </span>
                         ) : null}
                       </button>
+                      {frameInputs ? (
+                        <>
+                          <span
+                            aria-hidden="true"
+                            className={`pointer-events-none absolute left-10 flex h-10 w-8 items-center justify-center text-neutral-500 ${references.length ? 'top-1' : 'top-0'} ${compactAction ? '' : 'translate-x-2'}`}
+                          >
+                            <Plus className="size-3.5" />
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFrameTarget(1);
+                              openFilePicker();
+                            }}
+                            disabled={!imageReferences.length}
+                            aria-label={labels.lastFrame}
+                            title={labels.lastFrame}
+                            className={`absolute z-10 inline-flex size-10 ${compactAction ? 'left-[4.5rem]' : 'left-20'} items-center justify-center rounded-xl border border-white/15 bg-white/[0.06] text-neutral-200 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200 disabled:opacity-45 ${references.length ? 'top-1' : 'top-0'}`}
+                          >
+                            <ImagePlus
+                              className="size-4.5"
+                              aria-hidden="true"
+                            />
+                          </button>
+                        </>
+                      ) : null}
                     </>
                   ) : null}
                   {references.length ? (
                     <div
                       className={`flex items-center gap-2 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-                        compactAction ? 'min-h-10 pl-12' : 'min-h-12 pl-14'
+                        frameInputs
+                          ? 'min-h-16 pl-32'
+                          : compactAction
+                            ? 'min-h-10 pl-12'
+                            : 'min-h-12 pl-14'
                       }`}
                     >
-                      {references.map((reference) => (
+                      {references.map((reference, index) => (
                         <AttachmentPreview
                           key={reference.id}
                           attachment={reference}
                           appearance={appearance}
                           compact={compactAction}
+                          frameLabel={
+                            frameInputs
+                              ? index === 0
+                                ? labels.firstFrame
+                                : labels.lastFrame
+                              : undefined
+                          }
                           removeLabel={labels.removeAttachment}
                           onRemove={() => removeReference(reference.id)}
                         />
@@ -629,7 +729,7 @@ export function ProactivHeroComposer({
                       setHasRequestedGeneration(false);
                     }}
                     placeholder={labels.placeholder}
-                    className={`block w-full flex-1 resize-none bg-transparent py-1 pr-1 pl-16 outline-none ${
+                    className={`block w-full flex-1 resize-none bg-transparent py-1 pr-1 outline-none ${frameInputs ? 'pl-36' : 'pl-16'} ${
                       isConsoleAppearance
                         ? 'text-neutral-100 placeholder:text-neutral-500'
                         : 'text-[#15202b] placeholder:text-[#7b8995]'
@@ -809,7 +909,7 @@ function ModelPicker({
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={label}
-        className={`group/model inline-flex h-8 shrink-0 items-center gap-1.5 rounded-xl border px-2 text-xs font-semibold transition-[background-color,border-color,box-shadow,color] focus-visible:outline-2 focus-visible:outline-offset-2 ${
+        className={`group/model inline-flex h-9 shrink-0 items-center gap-3 rounded-xl border px-4 text-xs font-semibold transition-[background-color,border-color,box-shadow,color] focus-visible:outline-2 focus-visible:outline-offset-2 ${
           isConsoleAppearance
             ? 'border-white/15 bg-white/[0.06] text-neutral-200 hover:border-white/25 hover:bg-white/10 hover:text-white focus-visible:outline-cyan-200'
             : 'border-[#d7dde2] bg-white text-[#354454] shadow-[0_2px_8px_rgba(21,32,43,0.06)] hover:border-[#b9c5cf] hover:bg-[#f3f5f6] hover:text-[#15202b] hover:shadow-[0_5px_13px_rgba(21,32,43,0.1)] focus-visible:outline-[#627181]'
@@ -1121,12 +1221,14 @@ function AttachmentPreview({
   compact = false,
   onRemove,
   removeLabel,
+  frameLabel,
 }: {
   attachment: ReferenceAttachment;
   appearance?: 'light' | 'console';
   compact?: boolean;
   onRemove: () => void;
   removeLabel: string;
+  frameLabel?: string;
 }) {
   const isConsoleAppearance = appearance === 'console';
 
@@ -1164,7 +1266,15 @@ function AttachmentPreview({
       >
         <X className="size-3" strokeWidth={2.5} aria-hidden="true" />
       </button>
-      <figcaption className="sr-only">{attachment.name}</figcaption>
+      <figcaption
+        className={
+          frameLabel
+            ? 'absolute top-full left-1/2 mt-1 -translate-x-1/2 text-[10px] whitespace-nowrap text-neutral-400'
+            : 'sr-only'
+        }
+      >
+        {frameLabel ?? attachment.name}
+      </figcaption>
     </figure>
   );
 }

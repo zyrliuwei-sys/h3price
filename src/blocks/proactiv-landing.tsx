@@ -369,6 +369,8 @@ export function ProactivLanding() {
           openEditorLabel={m['proactiv.hero.composer.open_editor']()}
           composerLabels={{
             addReference: m['proactiv.hero.composer.add_reference'](),
+            firstFrame: m['proactiv.hero.composer.first_frame'](),
+            lastFrame: m['proactiv.hero.composer.last_frame'](),
             aspectRatio: m['proactiv.hero.composer.aspect_ratio'](),
             avatar: m['proactiv.hero.composer.avatar'](),
             duration: m['proactiv.hero.composer.duration'](),

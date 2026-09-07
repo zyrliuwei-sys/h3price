@@ -1188,5 +1188,7 @@
   "auth.meta.forgot-password": "Reset your password",
   "auth.meta.reset-password": "Choose a new password",
   "auth.meta.auth-callback": "Complete sign-in",
-  "auth.meta.redeem-invite": "Redeem an invitation"
+  "auth.meta.redeem-invite": "Redeem an invitation",
+  "proactiv.hero.composer.first_frame": "First frame",
+  "proactiv.hero.composer.last_frame": "Last frame"
 }
