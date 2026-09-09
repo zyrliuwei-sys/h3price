@@ -25,12 +25,21 @@ export function Footer() {
       tagline={m['h3.footer.tagline']()}
       columns={columns}
       socials={[]}
-      badge={{
-        href: 'https://fazier.com/launches/www.h3price.com',
-        src: 'https://fazier.com/api/v1/public/badges/launch_badges.svg?badge_type=featured&theme=light',
-        alt: 'Fazier badge',
-        width: 250,
-      }}
+      badges={[
+        {
+          href: 'https://fazier.com/launches/www.h3price.com',
+          src: 'https://fazier.com/api/v1/public/badges/launch_badges.svg?badge_type=featured&theme=light',
+          alt: 'Fazier badge',
+          width: 250,
+        },
+        {
+          href: 'https://tooldirs.com',
+          src: 'https://tooldirs.com/badge/badge_dark.svg',
+          alt: 'Featured on ToolDirs',
+          width: 200,
+          height: 54,
+        },
+      ]}
     />
   );
 }

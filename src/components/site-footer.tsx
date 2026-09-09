@@ -26,6 +26,7 @@ export interface FooterBadge {
   src: string;
   alt: string;
   width?: number;
+  height?: number;
 }
 
 export function SiteFooter({
@@ -33,12 +34,14 @@ export function SiteFooter({
   columns,
   socials,
   badge,
+  badges,
   copyright,
 }: {
   tagline?: string;
   columns?: FooterColumn[];
   socials?: FooterSocial[];
   badge?: FooterBadge;
+  badges?: FooterBadge[];
   copyright?: string;
 }) {
   const year = new Date().getFullYear();
@@ -106,8 +109,9 @@ export function SiteFooter({
                 {tagline}
               </p>
             ) : null}
-            {badge ? (
+            {(badges ?? (badge ? [badge] : [])).map((badge) => (
               <a
+                key={badge.href}
                 href={badge.href}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -117,11 +121,16 @@ export function SiteFooter({
                   src={badge.src}
                   alt={badge.alt}
                   width={badge.width ?? 250}
-                  className="h-auto w-[140px] sm:w-[180px]"
+                  height={badge.height}
+                  className={
+                    badge.height
+                      ? 'h-auto max-w-full'
+                      : 'h-auto w-[140px] sm:w-[180px]'
+                  }
                   loading="lazy"
                 />
               </a>
-            ) : null}
+            ))}
             {socials && socials.length > 0 ? (
               <div className="mt-6 flex items-center gap-4">
                 {socials.map((s) => (
