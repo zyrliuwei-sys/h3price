@@ -39,6 +39,12 @@ export function Footer() {
           width: 200,
           height: 54,
         },
+        {
+          href: 'https://shinylaunch.com/product/h3price',
+          src: 'https://shinylaunch.com/assets/images/badge.png',
+          alt: 'ShinyLaunch',
+          height: 54,
+        },
       ]}
     />
   );
