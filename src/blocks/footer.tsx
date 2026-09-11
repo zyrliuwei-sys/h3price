@@ -45,6 +45,12 @@ export function Footer() {
           alt: 'ShinyLaunch',
           height: 54,
         },
+        {
+          href: 'https://shinylaunch.com/product/uncensoredaieditor',
+          src: 'https://shinylaunch.com/assets/images/badge-dark.png',
+          alt: 'ShinyLaunch',
+          height: 54,
+        },
       ]}
     />
   );
