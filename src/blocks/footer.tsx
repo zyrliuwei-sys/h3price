@@ -51,6 +51,13 @@ export function Footer() {
           alt: 'ShinyLaunch',
           height: 54,
         },
+        {
+          href: 'https://findly.tools/h3price-ai?utm_source=h3price-ai',
+          src: 'https://findly.tools/badges/findly-tools-badge-dark.svg',
+          alt: 'Featured on Findly.tools',
+          width: 175,
+          height: 55,
+        },
       ]}
     />
   );
