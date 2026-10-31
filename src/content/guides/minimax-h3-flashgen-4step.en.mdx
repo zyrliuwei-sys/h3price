@@ -1,0 +1,191 @@
+<h2 id="what-it-is">What is MiniMax H3 FlashGen 4step?</h2>
+
+**MiniMax H3 FlashGen 4step is a community distillation LoRA for generating video and audio with fewer denoising steps.** You load it alongside a compatible H3 base model. It is an adapter, so downloading the LoRA alone does not give you a complete video generator.
+
+The [publisher’s model card](https://huggingface.co/Beidouqixing/minimax-h3-4step-lora-flashgen) describes a T2VA release trained for four steps, with a 1344 × 768, 5.2-second training configuration. Those are useful reproduction settings; they are not proof that every duration, resolution, or H3 workflow works equally well.
+
+Use this guide when you want a repeatable first experiment, a way to check your adapter is active, and a fair test of whether fewer steps actually help your workflow. The setup steps below are a suggested evaluation method, not a claim that we benchmarked this release on your hardware.
+
+<h2 id="choose-your-path">Choose the right starting point</h2>
+
+- **You already run H3 locally:** save a working baseline, then add the adapter using the instructions for your exact runtime and artifact.
+- **You are new to local video generation:** make the base model produce a clip first. Debugging the base model and a new LoRA at the same time makes failures harder to isolate.
+- **You only need a hosted video:** check the provider’s exposed model and parameters. Access to an H3 or H3 Max endpoint does not establish that it accepts arbitrary community LoRAs.
+- **You need image or reference conditioning:** verify support explicitly. The documented FlashGen release is T2VA; broader H3 input capabilities do not automatically transfer to the adapter.
+
+For context, [MiniMax’s base model card](https://huggingface.co/MiniMaxAI/MiniMax-H3) distinguishes FL2VA keyframe generation from Ref2VA reference generation. Treat the base partition, adapter, and runtime as one compatibility decision.
+
+<h2 id="setup">A practical first-run workflow</h2>
+
+<figure>
+  <img
+    src="/imgs/guides/flashgen-workflow.svg"
+    alt="FlashGen setup diagram: verify the base model, choose one adapter loading path, then run a fixed-seed four-step test."
+    width="1200"
+    height="680"
+    loading="lazy"
+    decoding="async"
+  />
+  <figcaption>
+    A suggested setup sequence. Keep the merged-checkpoint route and
+    dynamic-adapter route separate.
+  </figcaption>
+</figure>
+
+### 1. Save a known-good baseline
+
+Generate a short, simple scene with your existing H3 setup. Save the prompt, seed, checkpoint name, software version, sampler, output size, duration, and total elapsed time. Keep the output, too: a screenshot of the first frame will not reveal motion or audio problems later in the clip.
+
+Use one subject, one action, and a stationary camera. A complicated crowd scene introduces too many possible causes of failure for a first test. If your baseline already fails, resolve that before changing the sampling configuration.
+
+### 2. Select one supported loading route
+
+There are two documented integration approaches, and their artifacts should not be treated as interchangeable:
+
+- The [Beidouqixing release](https://huggingface.co/Beidouqixing/minimax-h3-4step-lora-flashgen) provides a merge script for creating a checkpoint with its distilled schedule.
+- The [vLLM-Omni H3 recipe](https://github.com/vllm-project/vllm-omni/blob/main/recipes/MiniMaxAI/MiniMax-H3.md#flashgen-native-lora) documents a native FlashGen artifact loaded dynamically. That path uses T2VA and rejects an already schedule-pinned checkpoint.
+
+Follow the selected source’s current commands in full. Do not load a dynamically applied copy on top of a checkpoint you already merged. Record the repository, exact filename, and revision so you can reproduce your result after an update.
+
+For the publisher’s **merged-checkpoint route**, download its LoRA and merge script, then adapt this command to your local paths. This is a documented setup example, not a command we ran as part of writing this guide:
+
+```bash
+python /path/to/flashgen/merge_lora_ckpt.py \
+  /path/to/MiniMax-H3/FL2VA \
+  /path/to/flashgen/minimax_h3_4step_lora_flashgen_v1.0_768p_bf16.safetensors \
+  ./h3-flashgen-merged
+```
+
+The model card points the runtime to the resulting `FL2VA` directory. Use the current deployment instructions for your backend to start it. If you selected dynamic loading instead, follow that runtime’s native-artifact recipe rather than this merge example.
+
+### 3. Check the schedule before judging the output
+
+In the documented native integration, the schedule has **five sigma points defining four denoising intervals**. The requested inference-step count is four. A list with five entries does not mean the model needs five denoiser evaluations. [See the runtime’s schedule contract.](https://github.com/vllm-project/vllm-omni/blob/main/recipes/MiniMaxAI/MiniMax-H3.md#flashgen-native-lora)
+
+Keep other settings at the selected integration’s documented values for the first run. Changing a sampler, a flow shift, and a cache setting together makes it difficult to tell whether a quality problem comes from the adapter or from a configuration mismatch.
+
+### 4. Make one small, inspectable clip
+
+Start close to the published training configuration if your chosen runtime supports it. Confirm that logs identify the intended artifact and that generation completes with video and audio. Replay the entire clip before increasing duration or scene complexity.
+
+A successful run establishes that this particular combination works. It does not establish support for every H3 mode, every quantization, or every other LoRA.
+
+<h2 id="prompt">A prompt you can adapt</h2>
+
+This is an original diagnostic prompt. It describes visible action and audible events without demanding a sequence of unrelated shots. Adapt its formatting if your runtime requires H3’s structured prompt format.
+
+```text
+A single continuous medium shot of a ceramic mug on a wooden table
+beside an open window. A light breeze moves the curtain slowly.
+The mug stays in the same place and keeps the same shape.
+Soft morning light, natural textures, a locked camera.
+Audio: gentle outdoor ambience and quiet curtain rustling.
+```
+
+First, keep that scene unchanged across runs. Then change one element: lighting, camera movement, or the main action. If you add a camera move, use one clear instruction such as “a slow push toward the mug” rather than several competing camera directions.
+
+For more shot ideas, use the [H3 prompt generator](/prompt-generator). Treat its output as a starting draft and simplify it for diagnostic runs.
+
+<h2 id="evaluate">Measure useful speed, not just step count</h2>
+
+<figure>
+  <img
+    src="/imgs/guides/flashgen-evaluation.svg"
+    alt="An evaluation scorecard separating total generation time, usable clip quality, and repeatability rather than claiming a fixed speedup."
+    width="1200"
+    height="680"
+    loading="lazy"
+    decoding="async"
+  />
+  <figcaption>
+    Recommended evaluation criteria. This illustration contains no measured
+    benchmark results.
+  </figcaption>
+</figure>
+
+**Four steps does not mean four seconds.** Your request still includes work outside denoising, so count the time from submission to a playable file. Keep the hardware and workload the same when comparing configurations.
+
+Run a warm-up separately, then repeat the same test prompt several times. Record both total latency and how many outputs you would actually keep. A faster run that needs more retries can be a poor trade for your use case.
+
+Check three things in every output:
+
+1. **Visual continuity:** does the subject keep its identity and shape through the whole clip?
+2. **Action and sound:** does the requested movement happen, and is the soundtrack coherent with the scene?
+3. **Repeatability:** can you rerun the saved configuration and obtain stable behavior?
+
+Use the base model’s recommended sampling setup for your quality baseline, and the adapter’s documented setup for the distilled run. Forcing both to four steps would test a different question. Where your backend supports deterministic generation, a fixed seed also helps distinguish a meaningful configuration change from a random new sample.
+
+<h2 id="troubleshooting">Troubleshooting without guesswork</h2>
+
+<div className="guide-table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>Symptom</th>
+        <th>First check</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>The adapter will not load</td>
+        <td>
+          Verify the artifact format, base partition, and runtime version
+          against your chosen integration.
+        </td>
+      </tr>
+      <tr>
+        <td>The clip looks unusually noisy</td>
+        <td>
+          Check that the adapter and its sampling schedule are both active.
+        </td>
+      </tr>
+      <tr>
+        <td>Generation is still slow</td>
+        <td>
+          Separate loading, encoding, denoising, decoding, and output-writing
+          time.
+        </td>
+      </tr>
+      <tr>
+        <td>Quality changes after an update</td>
+        <td>
+          Reproduce with the saved artifact revision and original settings
+          before adding new optimizations.
+        </td>
+      </tr>
+      <tr>
+        <td>It runs out of memory</td>
+        <td>
+          Return to the working baseline and review the runtime’s complete
+          memory requirements.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<h2 id="faq">Frequently asked questions</h2>
+
+### Is FlashGen 4step a replacement for the H3 base model?
+
+No. It is an adapter for a compatible base model. Your setup still needs the model components and a supported inference runtime.
+
+### Will it always be five times faster?
+
+There is no universal end-to-end multiplier. Compare complete generation time on your own workload, including warm-up and retries, instead of turning a reduction in steps into a guaranteed speed claim.
+
+### Can I combine FlashGen with VBVR?
+
+Do not assume that combination works. Start by testing each adapter in its documented task and runtime. Any composition needs explicit loader support and a separate quality evaluation. Our [MiniMax H3 VBVR guide](/guides/minimax-h3-vbvr) covers the consistency-focused adapter.
+
+### Does FlashGen change the H3 Max API price?
+
+A local sampling configuration does not establish a change in a hosted provider’s billing. Use the [cost calculator](/cost-calculator) for the published H3 Max rate model, and evaluate local compute costs separately.
+
+<h2 id="sources">Sources and editorial notes</h2>
+
+Checked on **October 31, 2026**. Integration behavior can change; follow the source matching your installed version. The illustrations are original explanatory diagrams, not model-generated samples. Prompts, test plans, and troubleshooting priorities are editorial suggestions.
+
+- [FlashGen publisher: adapter, training configuration, and merged-checkpoint usage](https://huggingface.co/Beidouqixing/minimax-h3-4step-lora-flashgen)
+- [vLLM-Omni: native FlashGen loading and sampling contract](https://github.com/vllm-project/vllm-omni/blob/main/recipes/MiniMaxAI/MiniMax-H3.md#flashgen-native-lora)
+- [MiniMax: H3 base model and input modes](https://huggingface.co/MiniMaxAI/MiniMax-H3)

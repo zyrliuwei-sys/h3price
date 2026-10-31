@@ -1190,5 +1190,19 @@
   "auth.meta.auth-callback": "Complete sign-in",
   "auth.meta.redeem-invite": "Redeem an invitation",
   "proactiv.hero.composer.first_frame": "First frame",
-  "proactiv.hero.composer.last_frame": "Last frame"
+  "proactiv.hero.composer.last_frame": "Last frame",
+  "h3.guides.eyebrow": "The H3 field notes",
+  "h3.guides.title": "Understand the model. Make a better video.",
+  "h3.guides.description": "Two practical guides to the community tools behind faster sampling and more consistent motion. Clear steps, useful prompts, and sources you can check.",
+  "h3.guides.read": "Read the guide",
+  "h3.guides.minutes": "{minutes} min read",
+  "h3.guides.back": "Back to all guides",
+  "h3.guides.summary": "The quick answer",
+  "h3.guides.contents": "On this page",
+  "h3.guides.updated": "Updated",
+  "h3.guides.continue": "Read next",
+  "h3.guides.copy": "Copy",
+  "h3.guides.copied": "Copied",
+  "h3.guides.copy_failed": "Select text to copy",
+  "h3.guides.footer": "Guides"
 }

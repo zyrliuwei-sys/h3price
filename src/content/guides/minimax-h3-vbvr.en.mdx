@@ -1,0 +1,178 @@
+<h2 id="what-it-is">What is MiniMax H3 VBVR?</h2>
+
+**MiniMax H3 VBVR is a community image-to-video LoRA aimed at more consistent objects and more coherent interactions.** It is useful to investigate when a moving subject duplicates, passes through a surface, or loses the logic of an action midway through a clip.
+
+[LiconStudio’s model card](https://huggingface.co/LiconStudio/Minimax-H3-VBVR) describes an H3 adapter trained on reprocessed VBVR data. The publisher reports improvements in those failure modes and shows comparison videos. That is evidence of the intended use, not a guarantee that every scene will obey physical rules.
+
+This guide gives you a controlled way to try it: establish a working image-to-video baseline, load the adapter, keep the experiment comparable, and inspect the whole action. The prompts and evaluation method below are original recommendations, rather than results from a benchmark we ran.
+
+<h2 id="when-to-use">When should you try it?</h2>
+
+Consider VBVR when your problem is visible over time: a second copy of a prop appears, a hand intersects a table, or an object changes identity after passing behind something. Choose a test scene where you can describe the failure precisely. “The cup becomes two cups at the moment it is lifted” is more actionable than “the video looks wrong.”
+
+Separate the problem from other quality goals. Increasing sharpness will not prove that an object’s path makes sense. A more dramatic camera move can hide an interaction failure while making the shot harder to evaluate.
+
+**VBVR and FlashGen solve different problems.** FlashGen’s documented release targets fewer sampling steps; VBVR’s published goal is consistency in image-to-video generation. Use the [FlashGen 4step guide](/guides/minimax-h3-flashgen-4step) when sampling speed is the question. Do not assume either adapter replaces the other.
+
+<h2 id="setup">How to add VBVR to an H3 workflow</h2>
+
+<figure>
+  <img
+    src="/imgs/guides/vbvr-workflow.svg"
+    alt="VBVR workflow showing a reference image and H3 model feeding a compatible LoRA loader before sampling and video review."
+    width="1200"
+    height="680"
+    loading="lazy"
+    decoding="async"
+  />
+  <figcaption>
+    A conceptual workflow. The actual node names and connections depend on your
+    H3 implementation.
+  </figcaption>
+</figure>
+
+### 1. Get image-to-video working first
+
+Create a short clip with the H3 image-to-video workflow you already use, with no optional adapters. Save the graph or configuration and the resulting video. If the base workflow cannot load your reference image or complete generation, solve that problem before adding VBVR.
+
+For a starting point, [ComfyUI’s official H3 tutorial](https://docs.comfy.org/tutorials/video/minimax/minimax-h3) explains its video templates and model downloads. Use the image-to-video template as a baseline, and check that your version and loader support the adapter you intend to add.
+
+### 2. Download the intended artifact
+
+The publisher names the adapter **`H3-VBVR-I2V.safetensors`**. For ComfyUI, its instructions place that file in **`ComfyUI/models/loras/`**, then select it in the LoRA loader used by a compatible H3 image-to-video workflow. [See the publisher’s usage section.](https://huggingface.co/LiconStudio/Minimax-H3-VBVR#usage)
+
+Refresh the model list if needed, and verify that the selected loader actually supports H3. A file appearing in a dropdown is not enough: inspect the runtime messages to confirm that weights bind successfully, and investigate missing or unexpected keys before trusting the result.
+
+### 3. Keep the first comparison simple
+
+Save two versions of the same workflow: a baseline without VBVR and a candidate with it. Keep the input image, prompt, seed, duration, resolution, and sampler unchanged. The intended difference is the presence of the adapter.
+
+Use any configuration supplied by your chosen compatible workflow as the first candidate. If no validated strength is provided, mark your selected value as an experiment. The publisher’s usage notes do not establish one universal strength that every loader and scene should use.
+
+### 4. Add complexity only after a useful result
+
+Once a basic interaction looks coherent, try a second image and a different seed. Then introduce one harder condition, such as partial occlusion or a slow camera move. Save the exact configuration for both successes and failures. This helps you distinguish a repeatable improvement from one fortunate sample.
+
+<h2 id="prompt">Write prompts you can actually evaluate</h2>
+
+A useful diagnostic prompt identifies the object, the action, and the end state. The reference image should make the important interaction visible. These are test ideas, not examples produced by the model.
+
+### Test A: one object, one action
+
+```text
+Use the input image as the first frame. A person slowly lifts
+one red ceramic cup from the table with their right hand,
+then places the same cup back on the table.
+Keep one cup throughout the shot. Keep the cup's shape and color.
+A continuous medium shot with a stationary camera.
+```
+
+Watch the moment the hand contacts the cup, the lift, and the release. A strong first frame is not enough; the interaction must remain readable during all three phases.
+
+### Test B: disappearance and return
+
+```text
+Use the input image as the first frame. A single blue ball rolls
+behind the box and emerges from the other side.
+It remains the same ball, with the same color and size.
+The box stays still. A fixed camera and one continuous shot.
+```
+
+Look for object count, identity after occlusion, and a plausible direction of travel. If your reference image does not provide enough space for the path, use a clearer composition before changing the adapter strength.
+
+The [VBVR dataset card](https://huggingface.co/datasets/Video-Reason/VBVR-Pro-SFT-Video) includes structured visual tasks such as object disappearance and return. The prompts above apply that general testing idea to a small editorial test set; they are not official evaluation cases or a standardized VBVR score.
+
+<h2 id="evaluate">How to tell whether it helped</h2>
+
+<figure>
+  <img
+    src="/imgs/guides/vbvr-evaluation.svg"
+    alt="Three visual checks for VBVR testing: one persistent object, clean contact with surfaces, and the same identity after an occlusion."
+    width="1200"
+    height="680"
+    loading="lazy"
+    decoding="async"
+  />
+  <figcaption>
+    What to look for during review. These schematic examples illustrate
+    evaluation criteria, not measured before-and-after results.
+  </figcaption>
+</figure>
+
+Use a small set of reference images and repeat each baseline/candidate pair with several recorded seeds. Keep all outputs, including the ones that fail. Selecting only the best candidate clip and the worst baseline clip creates a misleading comparison.
+
+Review each pair at normal speed, then pause around contact and occlusion. Record a short note for each criterion:
+
+<div className="guide-table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>Criterion</th>
+        <th>What to inspect</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Object count</td>
+        <td>Does one cup or ball remain one object through the action?</td>
+      </tr>
+      <tr>
+        <td>Spatial contact</td>
+        <td>Do hands and props meet at a believable boundary?</td>
+      </tr>
+      <tr>
+        <td>Action sequence</td>
+        <td>Does contact happen before lifting, and release after placing?</td>
+      </tr>
+      <tr>
+        <td>Identity</td>
+        <td>Do color, shape, and size remain stable after an occlusion?</td>
+      </tr>
+      <tr>
+        <td>Trade-offs</td>
+        <td>
+          Did texture, motion, prompt adherence, or the overall shot become
+          worse?
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+A simple “pass / uncertain / fail” note is enough for a first test. Define the criterion before you watch. If the camera hides the contact point, mark it uncertain instead of assuming success. Judge results against the failure you set out to fix, and retain the baseline when the candidate offers no clear benefit.
+
+<h2 id="troubleshooting">Common problems and the next useful check</h2>
+
+**The adapter loads but nothing changes.** Verify that its strength is not zero, the loader is in the active model path, and the runtime reports successful binding. Then compare the same image and seed with the adapter removed. Do not expect every easy scene to show a visible difference.
+
+**The object still duplicates.** Simplify the action, make the object clearly visible in the reference image, and remove competing scene instructions. Repeat with other seeds. VBVR’s stated goal is fewer consistency failures, not their complete elimination.
+
+**The scene becomes stiff or loses detail.** Return to the baseline and alter one setting at a time. If you experiment with strength, keep a record of the value and loader version. A setting that helps one interaction can be unsuitable for another.
+
+**It breaks when combined with another LoRA.** Disable the extra adapter and reproduce the working single-adapter setup. A successful VBVR run does not prove compatibility with acceleration adapters, merged checkpoints, or other model formats.
+
+<h2 id="faq">Frequently asked questions</h2>
+
+### Is VBVR a standalone model or a new H3 Max API mode?
+
+It is a community LoRA for a compatible H3 image-to-video pipeline. Its publication does not imply that a hosted H3 Max endpoint exposes it. Check the provider’s current interface before planning an API integration.
+
+### Does VBVR make every interaction physically correct?
+
+No. Evaluate the actions your project actually needs. The model card describes improvements; it does not provide a universal pass rate or a guarantee for every scene.
+
+### What strength and number of steps should I use?
+
+Begin with your compatible workflow’s documented settings. Establish a baseline before tuning. Do not copy a four-step configuration from an unrelated speed adapter or present an experimental strength as an official recommendation.
+
+### Should I use it for every video?
+
+Use it when controlled comparisons show a benefit for your scenes. Keep a simpler baseline available for shots where it adds little value. Review usable outputs per attempt, not just whether a clip finishes rendering.
+
+<h2 id="sources">Sources and editorial notes</h2>
+
+Checked on **October 31, 2026**. Illustrations are original diagrams, not generated video frames or benchmark evidence. Setup order, sample prompts, and the review rubric are editorial suggestions. Verify your exact workflow against its current documentation.
+
+- [LiconStudio: VBVR model card, adapter file, and usage](https://huggingface.co/LiconStudio/Minimax-H3-VBVR)
+- [ComfyUI: official H3 workflow tutorial](https://docs.comfy.org/tutorials/video/minimax/minimax-h3)
+- [Video-Reason: VBVR-Pro-SFT-Video dataset](https://huggingface.co/datasets/Video-Reason/VBVR-Pro-SFT-Video)

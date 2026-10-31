@@ -13,6 +13,13 @@ export function Footer() {
       ],
     },
     {
+      title: m['h3.guides.footer'](),
+      links: [
+        { label: 'FlashGen 4step', href: '/guides/minimax-h3-flashgen-4step' },
+        { label: 'H3 VBVR', href: '/guides/minimax-h3-vbvr' },
+      ],
+    },
+    {
       title: m['h3.footer.legal'](),
       links: [
         { label: m['h3.footer.privacy'](), href: '/privacy-policy' },

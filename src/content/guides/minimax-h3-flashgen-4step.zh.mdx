@@ -1,0 +1,175 @@
+<h2 id="what-it-is">MiniMax H3 FlashGen 4step 到底是什么？</h2>
+
+**MiniMax H3 FlashGen 4step 是一个社区发布的蒸馏 LoRA，用更少的去噪步数生成视频与音频。** 它需要搭配兼容的 H3 基础模型和推理框架；只下载一个 LoRA 文件，还不能独立生成视频。
+
+[发布者的模型卡](https://huggingface.co/Beidouqixing/minimax-h3-4step-lora-flashgen)将其描述为面向 T2VA（文生音视频）的四步适配器，并列出 1344 × 768、5.2 秒的训练配置。这是复现实验的参考，不代表所有时长、分辨率和 H3 输入模式都已验证。
+
+这篇指南帮你完成三个判断：自己该从哪里开始、适配器是否正确生效，以及减少采样步数后，完整出片流程到底有没有变得更好用。以下测试顺序属于编辑建议，不是我们在你的设备上跑出的实测成绩。
+
+<h2 id="choose-your-path">先选择适合你的起点</h2>
+
+- **已经能在本地运行 H3：** 保留一份正常出片的配置，再按具体框架的文档加入 FlashGen。
+- **第一次搭建本地视频生成：** 先让基础模型生成一段视频。基础环境和新 LoRA 一起排错，会很难确定问题来自哪里。
+- **只想通过 API 生成视频：** 先看服务商开放的模型与参数。能调用 H3 或 H3 Max，不等于能上传任意社区 LoRA。
+- **需要首帧、尾帧或多模态参考：** 单独核对支持范围。文档中的 FlashGen 版本面向 T2VA，不能直接把基础模型的全部能力算到适配器上。
+
+[MiniMax 的基础模型说明](https://huggingface.co/MiniMaxAI/MiniMax-H3)区分了 FL2VA 关键帧模式与 Ref2VA 参考模式。选型时，把基础模型分支、LoRA 文件和推理框架一起核对，比只看文件名里有没有 “H3” 更可靠。
+
+<h2 id="setup">首次运行：按这个顺序做</h2>
+
+<figure>
+  <img
+    src="/imgs/guides/flashgen-workflow.svg"
+    alt="FlashGen 操作流程：确认基础模型正常，选择一种适配器加载路径，再固定种子进行四步测试。"
+    width="1200"
+    height="680"
+    loading="lazy"
+    decoding="async"
+  />
+  <figcaption>
+    建议的操作顺序。合并权重与动态加载是两条路径，需要分开使用。
+  </figcaption>
+</figure>
+
+### 第一步：保存一个可用的基础结果
+
+用现有 H3 配置生成一个简单短镜头，记录提示词、种子、基础模型、软件版本、采样器、尺寸、时长和完整耗时。把视频也保存下来：第一帧截图无法暴露后半段动作和音频的问题。
+
+第一次测试可以只有一个主体、一个动作和固定机位。不要一上来就挑战人群、复杂遮挡和连续转场。基础结果已经出错时，先解决原有问题，再引入四步配置。
+
+### 第二步：只选一条文档支持的加载路径
+
+目前可查到两种接入方式，使用的权重与处理方式不能随意混用：
+
+- [Beidouqixing 的发布页](https://huggingface.co/Beidouqixing/minimax-h3-4step-lora-flashgen)提供合并脚本，将适配器及其蒸馏调度写入输出权重。
+- [vLLM-Omni 的原生 FlashGen 文档](https://github.com/vllm-project/vllm-omni/blob/main/recipes/MiniMaxAI/MiniMax-H3.md#flashgen-native-lora)说明了动态加载方式；这条路径使用 T2VA，并拒绝已经固定该调度的合并权重。
+
+按选定来源的当前文档完整执行。不要先合并一次，再在同一模型上动态叠加一次。记下仓库、具体文件名与版本，后续更新或换机器时才有复现依据。
+
+选择发布者的**合并权重路径**时，先下载对应 LoRA 与合并脚本，再把下面的占位路径替换为本地位置。这是按发布文档整理的配置示例，并非本文写作过程中已经执行的命令：
+
+```bash
+python /path/to/flashgen/merge_lora_ckpt.py \
+  /path/to/MiniMax-H3/FL2VA \
+  /path/to/flashgen/minimax_h3_4step_lora_flashgen_v1.0_768p_bf16.safetensors \
+  ./h3-flashgen-merged
+```
+
+模型卡将运行时指向合并结果的 `FL2VA` 目录，具体启动方式继续按后端的部署文档操作。如果选择的是动态加载，就使用框架要求的原生权重接入方式，不要再执行这条合并路径。
+
+### 第三步：先核对调度，再评价效果
+
+原生接入文档中的调度包含**五个 sigma 点，对应四个去噪区间**，请求中的推理步数是四。看到列表里有五个数字，不应直接把采样步数改成五。[具体以运行框架的采样约定为准。](https://github.com/vllm-project/vllm-omni/blob/main/recipes/MiniMaxAI/MiniMax-H3.md#flashgen-native-lora)
+
+首次运行保留该接入路径要求的其他设置。采样器、flow shift 和缓存同时改动后，即使生成出错，也很难分清是权重不匹配、调度错误，还是新增优化造成的。
+
+### 第四步：生成一段容易检查的视频
+
+如果框架允许，先接近发布页给出的训练配置。确认日志中加载的是预期文件，生成能正常完成，并且输出包含视频和音频。
+
+完整播放一遍后，再尝试增加时长或画面复杂度。一次成功只能证明当前组合可用，不能据此推导出所有量化格式、参考模式和 LoRA 叠加都兼容。
+
+<h2 id="prompt">可以直接改写的测试提示词</h2>
+
+下面是一段原创诊断提示词，重点是画面和声音都简单、变化可观察。如果运行框架要求 H3 的结构化提示格式，先按它的要求整理。
+
+```text
+A single continuous medium shot of a ceramic mug on a wooden table
+beside an open window. A light breeze moves the curtain slowly.
+The mug stays in the same place and keeps the same shape.
+Soft morning light, natural textures, a locked camera.
+Audio: gentle outdoor ambience and quiet curtain rustling.
+```
+
+场景含义：木桌上只有一个陶瓷杯，微风轻轻吹动窗帘，机位固定，声音以室外环境声与窗帘摩擦声为主。
+
+先用完全相同的场景完成对照，再一次只改变一个因素，例如光线、运镜或主体动作。要增加运镜时，用“一次缓慢推近”这样的单一要求，避免同一镜头里同时要求环绕、俯拍和快速拉远。
+
+需要更多镜头灵感，可以使用 [H3 提示词生成器](/prompt-generator)，再把输出精简成适合诊断的版本。
+
+<h2 id="evaluate">速度与质量：这样比较才有意义</h2>
+
+<figure>
+  <img
+    src="/imgs/guides/flashgen-evaluation.svg"
+    alt="FlashGen 评估图：分别记录完整耗时、可用画质与可复现性，不预设固定提速倍数。"
+    width="1200"
+    height="680"
+    loading="lazy"
+    decoding="async"
+  />
+  <figcaption>建议记录的三个维度。图中不包含实际跑分或提速承诺。</figcaption>
+</figure>
+
+**四步不等于四秒。** 计时应该从提交任务到拿到可播放文件，而不是只看去噪阶段。两组配置需要使用相同硬件和相同任务规模。
+
+把首次预热单独记录，再重复运行同一个提示词。除了总耗时，也记录哪些视频真正能留下来使用。如果单次生成更快，却需要反复重试，整体工作效率可能没有提高。
+
+每个结果都检查三个方面：
+
+1. **视觉连续性：** 主体身份、轮廓和材质在整段视频中是否稳定？
+2. **动作与声音：** 指定动作有没有发生？声音是否与画面内容协调？
+3. **可复现性：** 保存的配置能否再次运行，并保持稳定行为？
+
+基础模型使用它建议的采样设置，蒸馏适配器使用自己的设置。强行把两组都改成四步，回答的是另一个问题。如果后端支持确定性生成，固定种子也有助于区分配置差异和随机样本差异。
+
+<h2 id="troubleshooting">常见问题：优先查什么？</h2>
+
+<div className="guide-table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>现象</th>
+        <th>优先检查</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>权重无法加载</td>
+        <td>文件格式、基础模型分支和推理框架版本是否符合所选接入文档。</td>
+      </tr>
+      <tr>
+        <td>输出异常模糊或噪点很多</td>
+        <td>适配器与其对应的采样调度是否同时生效。</td>
+      </tr>
+      <tr>
+        <td>改成四步仍然很慢</td>
+        <td>把加载、编码、去噪、解码和文件写入的时间分开看。</td>
+      </tr>
+      <tr>
+        <td>软件更新后效果变化</td>
+        <td>先用保存的权重版本和原始配置复现，再加入新优化。</td>
+      </tr>
+      <tr>
+        <td>显存不足</td>
+        <td>回到可用的基础配置，并查阅框架完整的内存要求。</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<h2 id="faq">FAQ</h2>
+
+### FlashGen 4step 能替代 H3 基础模型吗？
+
+不能。它是适配器，仍然需要兼容的模型组件与推理框架。
+
+### 一定能提高五倍速度吗？
+
+没有适用于所有设备和任务的完整耗时倍数。应计入预热、解码和重试，不能把采样步数的下降直接写成稳定的出片提速。
+
+### 能和 VBVR 一起使用吗？
+
+不要默认兼容。先在各自文档规定的任务与框架中分别测试，再核对加载器是否支持叠加，并单独评估结果。[VBVR 指南](/guides/minimax-h3-vbvr)讲的是动作与一致性方向。
+
+### 会改变 H3 Max API 的计费吗？
+
+本地采样配置不等于服务商调整价格。API 预算可用[费用计算器](/cost-calculator)按已公布的费率估算，本地算力开销需要另算。
+
+<h2 id="sources">来源与编辑说明</h2>
+
+资料核对日期：**2026 年 10 月 31 日**。运行框架会更新，请对照实际安装版本。本文三张图均为原创说明图，不是模型输出或性能证明。提示词、测试顺序与排错优先级为编辑建议。
+
+- [FlashGen 发布者：权重、训练配置与合并方式](https://huggingface.co/Beidouqixing/minimax-h3-4step-lora-flashgen)
+- [vLLM-Omni：原生加载与四步采样约定](https://github.com/vllm-project/vllm-omni/blob/main/recipes/MiniMaxAI/MiniMax-H3.md#flashgen-native-lora)
+- [MiniMax：H3 基础模型与输入模式](https://huggingface.co/MiniMaxAI/MiniMax-H3)

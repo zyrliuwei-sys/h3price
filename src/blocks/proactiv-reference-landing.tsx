@@ -23,6 +23,7 @@ import {
 import { saveVideoComposerDraft } from '@/lib/video-composer-draft';
 import { m } from '@/paraglide/messages.js';
 import { Footer } from '@/blocks/footer';
+import { H3Guides } from '@/blocks/h3/guides';
 import { H3Tools } from '@/blocks/h3/tools';
 import { Header } from '@/blocks/header';
 import { Pricing } from '@/blocks/pricing';
@@ -380,6 +381,7 @@ export function ProactivReferenceLanding() {
             </div>
           </div>
         </section>
+        <H3Guides />
       </main>
       <Footer />
     </div>
