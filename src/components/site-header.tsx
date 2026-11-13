@@ -1,5 +1,3 @@
-'use client';
-
 import { useState } from 'react';
 import { ArrowRight, Menu, X } from 'lucide-react';
 
@@ -48,7 +46,7 @@ export function SiteHeader({
       : 'gap-1.5'
   );
   const mobileLinkClass = cn(
-    'rounded-md px-3 py-2 text-sm transition-colors',
+    'flex min-h-10 items-center rounded-md px-3 py-2 text-sm transition-colors',
     isCinemaTone
       ? 'text-[#b9b5ae] hover:bg-white/[0.07] hover:text-[#f5b65e]'
       : 'text-muted-foreground hover:bg-accent hover:text-foreground'
@@ -80,7 +78,7 @@ export function SiteHeader({
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden items-center gap-6 md:flex">
+        <nav className="hidden items-center gap-4 xl:flex">
           {navLinks?.map((link) =>
             isExternalHref(link.href) ? (
               <a
@@ -106,7 +104,7 @@ export function SiteHeader({
         </nav>
 
         {/* Desktop actions */}
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 xl:flex">
           {user ? (
             <SiteUserMenu
               name={user.name || 'User'}
@@ -134,7 +132,7 @@ export function SiteHeader({
         {/* Mobile toggle */}
         <button
           className={cn(
-            'p-2 md:hidden',
+            'p-2 xl:hidden',
             isCinemaTone && 'text-[#f7f2e9] hover:text-[#f5b65e]'
           )}
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -149,7 +147,7 @@ export function SiteHeader({
       {mobileOpen && (
         <div
           className={cn(
-            'border-t px-4 pt-2 pb-4 md:hidden',
+            'border-t px-4 pt-2 pb-4 xl:hidden',
             isCinemaTone ? 'border-white/[0.09] bg-[#101113]' : 'border-border'
           )}
         >

@@ -59,6 +59,13 @@ export const Route = createFileRoute('/sitemap.xml')({
             });
           }
         }
+        entries.push({
+          path: '/h3-image',
+          locale: 'zh',
+          lastModified: '2026-11-13',
+          changeFrequency: 'weekly',
+          priority: 0.8,
+        });
 
         const xml = [
           '<?xml version="1.0" encoding="UTF-8"?>',

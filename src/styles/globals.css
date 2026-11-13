@@ -631,3 +631,17 @@
 .h3-guide-prose tr:last-child td {
   border-bottom: 0;
 }
+
+.h3-image-page,
+.h3-image-tool {
+  color-scheme: dark;
+}
+.h3-image-serif {
+  font-family: 'Libre Baskerville', 'Songti SC', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+}
+.h3-image-page ::selection {
+  color: #17130e;
+  background: #e8bc86;
+}

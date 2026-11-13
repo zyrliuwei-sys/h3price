@@ -23,6 +23,7 @@ import {
 import { saveVideoComposerDraft } from '@/lib/video-composer-draft';
 import { m } from '@/paraglide/messages.js';
 import { Footer } from '@/blocks/footer';
+import { H3ImageGeneratorBlock } from '@/blocks/h3-image-generator';
 import { H3Guides } from '@/blocks/h3/guides';
 import { H3Tools } from '@/blocks/h3/tools';
 import { Header } from '@/blocks/header';
@@ -101,6 +102,9 @@ const toolVideos = [
 export function ProactivReferenceLanding() {
   const router = useRouter();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [generationType, setGenerationType] = useState<'video' | 'image'>(
+    'video'
+  );
   const testimonials = parseRecords(m['reference.testimonials.records']()).map(
     ([name, role, text], index) => ({
       name,
@@ -157,23 +161,86 @@ export function ProactivReferenceLanding() {
             <div className="proactiv-reference-console relative mx-auto max-w-3xl rounded-[28px] border-4 border-neutral-900 bg-[#161719] p-1.5 shadow-[0_9px_20px_rgba(0,0,0,0.4),0_37px_37px_rgba(0,0,0,0.32),0_84px_50px_rgba(0,0,0,0.2)] md:p-2">
               <div className="absolute top-0 left-[12%] h-px w-2/3 bg-gradient-to-r from-transparent via-cyan-300 to-transparent" />
               <div className="rounded-[18px] border border-white/10 bg-[#0e1011] p-2 sm:p-3">
-                <div id="proactiv-reference-composer" className="scroll-mt-24">
-                  <ProactivHeroComposer
-                    enableFrameInputs
-                    appearance="console"
-                    allowVideoMode={false}
-                    compactAction
-                    compactHeight
-                    labels={composerLabels()}
-                    requireReferences={false}
-                    onGenerate={(values) => {
-                      saveVideoComposerDraft(values);
-                      const { prompt } = values;
-                      router.push(
-                        `/text-to-video?prompt=${encodeURIComponent(prompt)}`
-                      );
-                    }}
-                  />
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-2 pt-1">
+                  <div
+                    role="tablist"
+                    aria-label={m['h3_image.home.generator_label']()}
+                    className="inline-flex gap-1 rounded-lg bg-black/30 p-1"
+                  >
+                    {(['video', 'image'] as const).map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        role="tab"
+                        id={`home-${type}-tab`}
+                        aria-controls={`home-${type}-panel`}
+                        aria-selected={generationType === type}
+                        tabIndex={generationType === type ? 0 : -1}
+                        onKeyDown={(event) => {
+                          if (
+                            event.key !== 'ArrowLeft' &&
+                            event.key !== 'ArrowRight'
+                          )
+                            return;
+                          event.preventDefault();
+                          const next = type === 'video' ? 'image' : 'video';
+                          setGenerationType(next);
+                          document.getElementById(`home-${next}-tab`)?.focus();
+                        }}
+                        onClick={() => setGenerationType(type)}
+                        className={`min-h-10 rounded-md px-5 text-xs font-medium transition-colors ${generationType === type ? 'bg-white/10 text-white' : 'text-neutral-500 hover:text-neutral-200'}`}
+                      >
+                        {type === 'video'
+                          ? m['h3_image.home.video']()
+                          : m['h3_image.home.image']()}
+                      </button>
+                    ))}
+                  </div>
+                  {generationType === 'image' && (
+                    <Link
+                      href="/h3-image"
+                      className="inline-flex min-h-10 items-center gap-1.5 text-xs text-[#eab574]"
+                    >
+                      {m['h3_image.home.explore']()}
+                      <ArrowRight className="size-3.5" />
+                    </Link>
+                  )}
+                </div>
+                <div
+                  id="home-video-panel"
+                  role="tabpanel"
+                  aria-labelledby="home-video-tab"
+                  hidden={generationType !== 'video'}
+                >
+                  <div
+                    id="proactiv-reference-composer"
+                    className="scroll-mt-24"
+                  >
+                    <ProactivHeroComposer
+                      enableFrameInputs
+                      appearance="console"
+                      allowVideoMode={false}
+                      compactAction
+                      compactHeight
+                      labels={composerLabels()}
+                      requireReferences={false}
+                      onGenerate={(values) => {
+                        saveVideoComposerDraft(values);
+                        const { prompt } = values;
+                        router.push(
+                          `/text-to-video?prompt=${encodeURIComponent(prompt)}`
+                        );
+                      }}
+                    />
+                  </div>
+                </div>
+                <div
+                  id="home-image-panel"
+                  role="tabpanel"
+                  aria-labelledby="home-image-tab"
+                  hidden={generationType !== 'image'}
+                >
+                  <H3ImageGeneratorBlock compact />
                 </div>
               </div>
             </div>

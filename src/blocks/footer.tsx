@@ -7,6 +7,7 @@ export function Footer() {
       title: m['h3.tools.title'](),
       links: [
         { label: m['h3.tools.home'](), href: '/' },
+        { label: m['h3_image.nav'](), href: '/h3-image' },
         { label: m['h3.tools.prompt'](), href: '/prompt-generator' },
         { label: m['h3.tools.calculator'](), href: '/cost-calculator' },
         { label: m['h3.tools.vs'](), href: '/vs/veo-3-1' },

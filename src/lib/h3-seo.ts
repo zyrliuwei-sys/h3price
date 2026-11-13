@@ -4,6 +4,12 @@ export const SITE_URL = new URL(envConfigs.site_url).origin;
 export const DEFAULT_SOCIAL_IMAGE_URL = `${SITE_URL}/imgs/h3-price-card.png`;
 
 export const h3PageSeo = {
+  image: {
+    title: `H3-Image: AI Image Generator & 4K Prompts | ${envConfigs.app_name}`,
+    description:
+      'Create images with MiniMax H3 Image. Choose a canvas, generate a PNG, and explore image prompts and real model examples.',
+    path: '/h3-image',
+  },
   home: {
     title: `H3 Max Pricing: Cost per Second & Deals (2026) | ${envConfigs.app_name}`,
     description:
